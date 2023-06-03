@@ -1,4 +1,4 @@
-#include "wave-setup.h"
+#include "include/wave-setup.h"
 
 namespace ns3
 {

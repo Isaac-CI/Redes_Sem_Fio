@@ -2,8 +2,8 @@
 #include "ns3/wifi-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/core-module.h"
-#include "custom-application.h"
-#include "wave-setup.h"
+#include "components/include/custom-application.h"
+#include "components/include/wave-setup.h"
 
 using namespace ns3;
 
