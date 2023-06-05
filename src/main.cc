@@ -16,7 +16,6 @@
 #define GATEWAY_ADDRESS "10.1.4.0"
 
 using namespace ns3;
-using namespace std;
 
 NS_LOG_COMPONENT_DEFINE("main");
 
@@ -33,7 +32,7 @@ std::vector<bool> server_state_table;
 std::vector<bool> sensor_state_vector;
 
 int loadFile(void){
-    std::ifstream file("./data.txt");
+    std::ifstream file("./data/data.txt");
     if (file.is_open()) {
         int number;
         int count = 0;
@@ -73,7 +72,7 @@ int loadFile(void){
         server_state_table.push_back(shelf4[0]);
         server_state_table.push_back(shelf5[0]);
         server_state_table.push_back(shelf6[0]);
-        for(int i = 0; i < server_state_table.size(); i++){
+        for(uint i = 0; i < server_state_table.size(); i++){
             sensor_state_vector.push_back(server_state_table[i]);
         }
     } else {
@@ -303,6 +302,8 @@ int main(){
             data->dest = buffer[1];
             data->command = buffer[2];
             data->payload = buffer[3];
+            uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+            uint8_t* msg = (uint8_t*)malloc(sizeof(messageData));
 
             if(data->source == 10){ // Veio do servidor
             // Repassa mensagem recebida do servidor para os sensores que a interessam.
@@ -315,7 +316,6 @@ int main(){
                         break;
                     case 1: // servidor deseja esvaziar uma das prateleiras
                         if(data->dest > 6 || data->dest < 0){ // caso o destino esteja fora do intervalo permitido, isto é, não seja o identificador de algum sensor
-                            uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
                             errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
                             errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
                             errorMsg[2] = 5;  // codigo de mensagem de erro
@@ -329,7 +329,7 @@ int main(){
                         break;
                     case 2: // servidor deseja preencher uma prateleira
                         if(data->dest > 6 || data->dest < 0){ // caso o destino esteja fora do intervalo permitido, isto é, seja o identificador de algum sensor
-                            uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+                            //uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
                             errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
                             errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
                             errorMsg[2] = 5;  // codigo de mensagem de erro
@@ -339,7 +339,6 @@ int main(){
                             
                             break;
                         }
-                        uint8_t* msg = (uint8_t*)malloc(sizeof(messageData));
                         msg[0] = data->source; // A fonte da mensagem permanece inalterada
                         msg[1] = data->dest;  // endereço da prateleira que deve ser preenchida
                         msg[2] = data->command;  // codigo de mensagem de preenchimento de prateleira
@@ -349,7 +348,7 @@ int main(){
 
                         break;
                     default: // instrução inválida, envia mensagem de erro de volta para o nó que enviou a mensagem original.
-                        uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+                        //uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
                         errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
                         errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
                         errorMsg[2] = 5;  // codigo de mensagem de erro
@@ -363,7 +362,7 @@ int main(){
                 if(data->source > 0 && data->source <= 6){ // é algum dos sensores
                     intermediateSocketS->SendTo(packetS, 0, InetSocketAddress(serverInterface.GetAddress(0), port)); // repassa a mensagem para o servidor
                 } else { // Inconsistência na mensagem
-                        uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+                       // uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
                         errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
                         errorMsg[1] = data->source; // endereço de quem enviou a mensagem
                         errorMsg[2] = 5;  // codigo de mensagem de erro
