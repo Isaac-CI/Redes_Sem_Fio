@@ -1,7 +1,11 @@
 Os pacotes enviados na rede ad hoc implementada seguem o seguinte padrão:
 são enviados 4 bytes, cada um com seu respectivo objetivo, que são:
 Byte 1 - source: O byte de source indica qual é a fonte da mensagem, isto é, qual é o nó que a gerou.
-Byte 2 - dest: O byte de dest indica qual é o destino final da mensagem, isto é, em qual nó ela deve chegar.
+       - source = 1..6: Sensores(preteleiras)
+       - source = 10: servidor
+       - source = 11 ou 12: Nó Intermediário
+       - source = 13: Gateway 
+Byte 2 - dest: O byte de dest indica qual é o destino final da mensagem, isto é, em qual nó ela deve chegar. Os identificadores são os mesmos que em source.
 Byte 3 - command: O byte de command indica qual é a operação realizada, podendo assumir os seguintes valores
        - command = 0: Verificar estado atual dos sensores caso o source seja o servidor, ou não fazer nada caso o source seja o gateway.
        - command = 1: Esvaziar prateleira indicada no byte 4
