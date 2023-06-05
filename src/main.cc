@@ -27,9 +27,6 @@ std::vector<bool> shelf3;
 std::vector<bool> shelf4;
 std::vector<bool> shelf5;
 std::vector<bool> shelf6;
-std::vector<bool> shelf7;
-std::vector<bool> shelf8;
-std::vector<bool> shelf9;
 std::vector<int> gateway_commands;
 std::vector<int> gateway_target;
 std::vector<bool> server_state_table;
@@ -62,16 +59,9 @@ int loadFile(void){
                 shelf6.push_back(number);
             }else if (count < 7 * nCols)
             {
-                shelf7.push_back(number);
+                gateway_commands.push_back(number);
             }else if (count < 8 * nCols)
             {
-                shelf8.push_back(number);
-            }else if (count < 9 * nCols)
-            {
-                shelf9.push_back(number);
-            } else if(count < 10 * nCols){
-                gateway_commands.push_back(number);
-            } else if(count < 11 * nCols){
                 gateway_target.push_back(number);
             }
             count++;
@@ -83,9 +73,6 @@ int loadFile(void){
         server_state_table.push_back(shelf4[0]);
         server_state_table.push_back(shelf5[0]);
         server_state_table.push_back(shelf6[0]);
-        server_state_table.push_back(shelf7[0]);
-        server_state_table.push_back(shelf8[0]);
-        server_state_table.push_back(shelf9[0]);
         for(int i = 0; i < server_state_table.size(); i++){
             sensor_state_vector.push_back(server_state_table[i]);
         }
@@ -103,34 +90,6 @@ typedef struct{
     uint8_t payload;
 } messageData;
 
-// Função de callback para o recebimento de dados
-void ReceivePacket(ns3::Ptr<ns3::Socket> socket)
-{
-    ns3::Ptr<ns3::Packet> packet;
-    ns3::Address from;
-    std::cout << "Here" << std::endl;
-    while ((packet = socket->RecvFrom(from)))
-    {
-        uint32_t packetSize = packet->GetSize();
-        ns3::Ipv4Address senderAddress = ns3::InetSocketAddress::ConvertFrom(from).GetIpv4();
-
-        // Lógica para processar o pacote recebido
-        // ...
-        uint8_t buffer[packetSize];
-        packet->CopyData(buffer, packetSize);
-        messageData* data = (messageData*)malloc(sizeof(messageData));
-        data->source = buffer[0];
-        data->dest = buffer[1];
-        data->command = buffer[2];
-        data->payload = buffer[3];
-
-        // Exemplo de impressão dos dados recebidos
-
-        NS_LOG_INFO("Mama mia Log");
-        std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
-        std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
-    }
-}
 int main(){
 
     loadFile();
@@ -421,6 +380,41 @@ int main(){
         }
     });
     intermediateSocketS->SetRecvPktInfo(true); // Enable receiving sender address information
+
+    serverSocket->SetRecvCallback([&](Ptr<Socket> socket){
+        ns3::Ptr<ns3::Packet> packetServer;
+        ns3::Address from;
+        std::cout << "Here" << std::endl;
+        while ((packetServer = socket->RecvFrom(from)))
+        {
+            uint32_t packetSize = packetServer->GetSize();
+            ns3::Ipv4Address senderAddress = ns3::InetSocketAddress::ConvertFrom(from).GetIpv4();
+
+            // Lógica para processar o pacote recebido
+            // ...
+            uint8_t buffer[packetSize];
+            packet->CopyData(buffer, packetSize);
+            messageData* data = (messageData*)malloc(sizeof(messageData));
+            data->source = buffer[0];
+            data->dest = buffer[1];
+            data->command = buffer[2];
+            data->payload = buffer[3];
+
+            if(data->source == 13){ // Fonte é o gateway
+
+            } else if(data->source > 0 && data->source <= 6){ // Fonte é um dos sensores
+
+            } else if(data->source == 11 || data->source == 12){ // Fonte é um dos nós intermediários, indicando que houve erro
+
+            } else { // Fonte inválida
+
+            }
+
+            NS_LOG_INFO("Mama mia Log");
+            std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
+            std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
+        }
+    });
 
     Simulator::Stop(Seconds(5.0));
     ns3::Simulator::Run();
