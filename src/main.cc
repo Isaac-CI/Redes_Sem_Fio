@@ -314,7 +314,7 @@ int main(){
                         }
                         break;
                     case 1: // servidor deseja esvaziar uma das prateleiras
-                        if(data->dest > 6 || data->dest < 0){ // caso o destino esteja fora do intervalo permitido, isto é, não seja o identificador de algum sensor
+                        if(data->dest > 6 || data->dest < 0){ // caso o destino esteja fora do intervalo permitido, isto é, não seja o identificador de alguma prateleira
                             uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
                             errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
                             errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
@@ -328,7 +328,7 @@ int main(){
 
                         break;
                     case 2: // servidor deseja preencher uma prateleira
-                        if(data->dest > 6 || data->dest < 0){ // caso o destino esteja fora do intervalo permitido, isto é, seja o identificador de algum sensor
+                        if(data->dest > 6 || data->dest < 0){ // caso o destino esteja fora do intervalo permitido, isto é, não seja o identificador de alguma prateleira
                             uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
                             errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
                             errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
@@ -402,15 +402,108 @@ int main(){
 
             if(data->source == 13){ // Fonte é o gateway
 
+                uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+                uint8_t* msg = (uint8_t*)malloc(sizeof(messageData));
+                switch (data->command)
+                {
+                case 0: // Comando recebido é não fazer nada.
+                    break;
+                case 1: // Comando recebido é esvaziar uma prateleira
+                    if(data->payload > 6 || data->payload < 0){ // caso o payload esteja fora do intervalo permitido, isto é, não seja o identificador de alguma prateleira
+                        errorMsg[0] = 10; // quem manda é o servidor
+                        errorMsg[1] = 13; // endereço de gateway
+                        errorMsg[2] = 5;  // codigo de mensagem de erro
+                        errorMsg[3] = 1;  // codigo que indica que o erro foi de destino inválido
+                        packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                        serverSocket->SendTo(packetServer, 0, InetSocketAddress(senderAddress, port)); // envia de volta parao nó intermediário entre servidor e gateway, indicando que sua solicitação foi inválida
+
+                    } else { // Caso o payload esteja no intervalo permitido
+                        bool current_state = server_state_table[data->payload - 1];
+                        if(current_state){ // Se a prateleira estiver cheia, mensagem alcançou seu destino, agora o servidor deve atualizar sua tabela de estados e solicitar a mudança no estado da prateleira
+                            server_state_table[data->payload - 1] = false; // Atualiza a tabela do servidor para o novo estado da prateleira a ser esvaziada
+                            msg[0] = 10; // A nova mensagem tem como fonte o servidor
+                            msg[1] = data->payload;  // endereço da prateleira que deve ser esvaziada
+                            msg[2] = data->command;  // codigo de mensagem de esvaziamento de prateleira
+                            msg[3] = 0;  // não importa, deixo em 0.
+                            packetServer = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
+                            serverSocket->SendTo(packetServer, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensor
+
+                        } else { // Se a prateleira estiver vazia, envia mensagem de erro, indicando que a solicitação do gateway é inválida
+                            errorMsg[0] = 10; // quem manda é o servidor
+                            errorMsg[1] = 13; // endereço de gateway
+                            errorMsg[2] = 5;  // codigo de mensagem de erro
+                            errorMsg[3] = 3;  // codigo que indica que o erro foi de tentativa de esvaziamento de prateleira vazia
+                            packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                            serverSocket->SendTo(packetServer, 0, InetSocketAddress(senderAddress, port)); // envia de volta parao nó intermediário entre servidor e gateway, indicando que sua solicitação foi inválida
+                        }
+                    }
+                    break;
+                case 2: // Comando recebido é preencher uma prateleira
+                    if(data->payload > 6 || data->payload < 0){ // caso o payload esteja fora do intervalo permitido, isto é, não seja o identificador de alguma prateleira
+                        errorMsg[0] = 10; // quem manda é o servidor
+                        errorMsg[1] = 13; // endereço de gateway
+                        errorMsg[2] = 5;  // codigo de mensagem de erro
+                        errorMsg[3] = 1;  // codigo que indica que o erro foi de destino inválido
+                        packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                        serverSocket->SendTo(packetServer, 0, InetSocketAddress(senderAddress, port)); // envia de volta para o nó intermediário entre servidor e gateway, indicando que sua solicitação foi inválida
+
+                    } else { // Caso o payload esteja no intervalo permitido
+                        bool current_state = server_state_table[data->payload - 1];
+                        if(!current_state){ // Se a prateleira estiver vazia, mensagem alcançou seu destino, agora o servidor deve atualizar sua tabela de estados e solicitar a mudança no estado da prateleira
+                            server_state_table[data->payload - 1] = true; // Atualiza a tabela do servidor para o novo estado da prateleira a ser preenchida
+                            msg[0] = 10; // A nova mensagem tem como fonte o servidor
+                            msg[1] = data->payload;  // endereço da prateleira que deve ser preenchida
+                            msg[2] = data->command;  // codigo de mensagem de preenchimento de prateleira
+                            msg[3] = 0;  // não importa, deixo em 0.
+                            packetServer = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
+                            serverSocket->SendTo(packetServer, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+
+                        } else { // Se a prateleira estiver cheia, envia mensagem de erro, indicando que a solicitação do gateway é inválida
+                            errorMsg[0] = 10; // quem manda é o servidor
+                            errorMsg[1] = 13; // endereço de gateway
+                            errorMsg[2] = 5;  // codigo de mensagem de erro
+                            errorMsg[3] = 4;  // codigo que indica que o erro foi de tentativa de preenchimento de prateleira cheia
+                            packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                            serverSocket->SendTo(packetServer, 0, InetSocketAddress(senderAddress, port)); // envia de volta para o nó intermediário entre servidor e gateway, indicando que sua solicitação foi inválida
+                        }
+                    }
+
+                    break;
+                default:
+                    break;
+                }
             } else if(data->source > 0 && data->source <= 6){ // Fonte é um dos sensores
+                if(data->payload != server_state_table[data->source - 1]){ // Caso ocorra inconsistência entre a tabela do servidor e os dados enviados pelo sensor
+                    server_state_table[data->source - 1] = !server_state_table[data->source - 1]; // Atualiza a tabela do servidor
+                    NS_LOG_INFO("Discrepância entre leitura esperada e real dos sensores, enviando mensagem de erro para Gateway.");
+                    uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+                            errorMsg[0] = 10; // quem manda é o servidor
+                            errorMsg[1] = 13; // endereço de gateway
+                            errorMsg[2] = 5;  // codigo de mensagem de erro
+                            errorMsg[3] = 5;  // codigo que indica que o erro foi de tentativa de inconsistência de valores.
+                            packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                            serverSocket->SendTo(packetServer, 0, InetSocketAddress(intermediateInterfaces.GetAddress(0), port)); // envia de volta para o nó intermediário entre servidor e gateway, indicando que ocorreu erro
+                }else{ // Caso o payload seja consistente com a tabela do servidor
+                    uint8_t* msg = (uint8_t*)malloc(sizeof(messageData));
+                    if(data->command == 1 || data->command == 2){ // Se o comando vier do gateway(1 ou 2), responde a ele com mensagem de sucesso.
+                        msg[0] = 10; // A nova mensagem tem como fonte o servidor
+                        msg[1] = data->payload;  // endereço da prateleira que deve ser preenchida
+                        msg[2] = data->command;  // codigo de mensagem de preenchimento de prateleira
+                        msg[3] = 0;  // não importa, deixo em 0.
+                        packetServer = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
+                        serverSocket->SendTo(packetServer, 0, InetSocketAddress(intermediateInterfaces.GetAddress(0), port)); // repassa a mensagem de sucesso para o nó intermediário entre servidor e gateway
+                    }else{ // caso o comando seja 0(verificar estado dos sensores), não é necessário mandar nenhuma mensagem, visto que ele partiu do proprio servidor
+                        NS_LOG_INFO("Verificação do estado dos sensores concluida com sucesso.");
+                    }
+                }
 
             } else if(data->source == 11 || data->source == 12){ // Fonte é um dos nós intermediários, indicando que houve erro
+                NS_LOG_INFO("Erro No envio para Nó intermediário. Dados inválidos ou corrompidos.");
 
             } else { // Fonte inválida
-
+                NS_LOG_INFO("Identificador Fonte Inválido, finalizando comunicação.");
             }
 
-            NS_LOG_INFO("Mama mia Log");
             std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
             std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
         }
