@@ -9,6 +9,8 @@
 #include "ns3/applications-module.h"
 #include "ns3/internet-apps-module.h"
 #include "ns3/netanim-module.h"
+#include <fstream>
+#include <vector>
 
 #define SENSOR_ADDRESS "10.1.1.0"
 #define INTERMEDIATE_ADDRESS "10.1.2.0"
@@ -32,8 +34,16 @@ std::vector<bool> server_state_table;
 std::vector<bool> sensor_state_vector;
 
 int loadFile(void){
-    std::ifstream file("./data/data.txt");
-    if (file.is_open()) {
+    std::ifstream file("/home/mai/Documents/Redes_sem_Fio/src/data/instance.txt");
+    std::cout << "opening file" << std::endl;
+
+    if (file.fail()) {
+        std::cout << "Erro ao abrir o arquivo. Detalhes: " << std::strerror(errno) << std::endl;
+    }
+
+
+    if(file.is_open()) {
+        std::cout << "file is open" << std::endl;
         int number;
         int count = 0;
         int nCols = 10;
@@ -66,6 +76,7 @@ int loadFile(void){
             count++;
         }
         file.close();
+        std::cout << "file is closed" << std::endl;
         server_state_table.push_back(shelf1.front());
         server_state_table.push_back(shelf2.front());
         server_state_table.push_back(shelf3.front());
@@ -88,6 +99,29 @@ typedef struct{
     uint8_t command;
     uint8_t payload;
 } messageData;
+
+void gatewayEvent(Ptr<Socket> skt, Ipv4Address dest){
+    uint8_t* buffer = (uint8_t*)malloc(sizeof(messageData));
+    buffer[0] = 13; // Gateway
+    buffer[1] = 10; // Server
+    buffer[2] = gateway_commands.front(); // Primeiro elemento da fila das leituras de gateway[0], iindicando o comando a ser executado
+    gateway_commands.pop();
+    buffer[3] = gateway_target.front(); // Primeiro elemento da fila das leituras de gateway[1], indicando qual sensor é o alvo do comando
+    gateway_target.pop();
+    Ptr<Packet> pkt = Create<Packet>(buffer, sizeof(messageData));
+    skt->SendTo(pkt, 0, InetSocketAddress(dest, 5500));
+}
+
+void verify(Ptr<Socket> skt, Ipv4Address dest){
+    uint8_t* buffer = (uint8_t*)malloc(sizeof(messageData));
+    buffer[0] = 10; // Server
+    buffer[1] = 0; // Broadcast
+    buffer[2] = 0; // Verifica status dos sensores
+    buffer[3] = 0; // não importa, fica em 0
+    Ptr<Packet> pkt = Create<Packet>(buffer, sizeof(messageData));
+    skt->SendTo(pkt, 0, InetSocketAddress(dest, 5500));
+    std::cout << InetSocketAddress(dest, 5500) <<std::endl;
+}
 
 int main(){
 
@@ -200,8 +234,6 @@ int main(){
 
     ns3::Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-
-
     // Aplicação
     std::cout << "\n--------Aplicação--------\n" <<std::endl;
     uint32_t port = 5500;
@@ -234,10 +266,6 @@ int main(){
     Ptr<Socket> gatewaySocket = Socket::CreateSocket(gatewayNode.Get(0), TypeId::LookupByName("ns3::UdpSocketFactory"));
     gatewaySocket->Bind(InetSocketAddress(gatewayInterface.GetAddress(0), port));
 
-
-    // Sending a 1-bit message from the sensor to the intermediate node
-    serverSocket->SendTo(packet, 0, InetSocketAddress(intermediateInterfaces.GetAddress(0), port));
-
     // Intermediário entre server e gateway recebe a mensagem
     intermediateSocketG->SetRecvCallback([&](Ptr<Socket> socket) {
         ns3::Ptr<ns3::Packet> packetG;
@@ -251,7 +279,7 @@ int main(){
             // Lógica para processar o pacote recebido
             // ...
             uint8_t buffer[packetSize];
-            packet->CopyData(buffer, packetSize);
+            packetG->CopyData(buffer, packetSize);
             messageData* data = (messageData*)malloc(sizeof(messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
@@ -281,7 +309,6 @@ int main(){
                 break;
             }
 
-            NS_LOG_INFO("Mama mia Log");
             std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
             std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
         }
@@ -300,7 +327,7 @@ int main(){
             // Lógica para processar o pacote recebido
             // ...
             uint8_t buffer[packetSize];
-            packet->CopyData(buffer, packetSize);
+            packetS->CopyData(buffer, packetSize);
             messageData* data = (messageData*)malloc(sizeof(messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
@@ -379,7 +406,6 @@ int main(){
 
                 }
 
-            NS_LOG_INFO("Mama mia Log");
             std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
             std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
         }
@@ -398,7 +424,7 @@ int main(){
             // Lógica para processar o pacote recebido
             // ...
             uint8_t buffer[packetSize];
-            packet->CopyData(buffer, packetSize);
+            packetServer->CopyData(buffer, packetSize);
             messageData* data = (messageData*)malloc(sizeof(messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
@@ -528,7 +554,7 @@ int main(){
             // Lógica para processar o pacote recebido
             // ...
             uint8_t buffer[packetSize];
-            packet->CopyData(buffer, packetSize);
+            packetSensor->CopyData(buffer, packetSize);
             messageData* data = (messageData*)malloc(sizeof(messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
@@ -548,7 +574,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = sensor_state_vector[0];  // Payload assume o valor da leitura do sensor
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[0]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 1.");
@@ -563,7 +589,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = false;  // Payload assume o valor 0, indicando que a prateleira foi esvaziada
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[0]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 1.");
@@ -577,14 +603,13 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = true;  // Payload assume o valor 0, indicando que a prateleira foi preenchida
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[0]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
                 break;
             default: // Inconsistência na mensagem(Não deve entrar aqui)
                 NS_LOG_INFO("O sensor não consegue processar o comando enviado.");
                 break;
             }
 
-            NS_LOG_INFO("Mama mia Log");
             std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
             std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
         }
@@ -603,7 +628,7 @@ int main(){
             // Lógica para processar o pacote recebido
             // ...
             uint8_t buffer[packetSize];
-            packet->CopyData(buffer, packetSize);
+            packetSensor->CopyData(buffer, packetSize);
             messageData* data = (messageData*)malloc(sizeof(messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
@@ -623,7 +648,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = sensor_state_vector[1];  // Payload assume o valor da leitura do sensor
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 2.");
@@ -638,7 +663,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = false;  // Payload assume o valor 0, indicando que a prateleira foi esvaziada
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 2.");
@@ -653,7 +678,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = true;  // Payload assume o valor 0, indicando que a prateleira foi preenchida
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 2.");
                 }
@@ -663,7 +688,6 @@ int main(){
                 break;
             }
 
-            NS_LOG_INFO("Mama mia Log");
             std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
             std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
         }
@@ -682,7 +706,7 @@ int main(){
             // Lógica para processar o pacote recebido
             // ...
             uint8_t buffer[packetSize];
-            packet->CopyData(buffer, packetSize);
+            packetSensor->CopyData(buffer, packetSize);
             messageData* data = (messageData*)malloc(sizeof(messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
@@ -702,7 +726,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = sensor_state_vector[2];  // Payload assume o valor da leitura do sensor
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 3.");
@@ -717,7 +741,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = false;  // Payload assume o valor 0, indicando que a prateleira foi esvaziada
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 1.");
@@ -732,7 +756,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = true;  // Payload assume o valor 0, indicando que a prateleira foi preenchida
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
                 }
                 break;
             default: // Inconsistência na mensagem(Não deve entrar aqui)
@@ -740,7 +764,6 @@ int main(){
                 break;
             }
 
-            NS_LOG_INFO("Mama mia Log");
             std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
             std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
         }
@@ -759,7 +782,7 @@ int main(){
             // Lógica para processar o pacote recebido
             // ...
             uint8_t buffer[packetSize];
-            packet->CopyData(buffer, packetSize);
+            packetSensor->CopyData(buffer, packetSize);
             messageData* data = (messageData*)malloc(sizeof(messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
@@ -779,7 +802,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = sensor_state_vector[3];  // Payload assume o valor da leitura do sensor
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 4.");
@@ -794,7 +817,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = false;  // Payload assume o valor 0, indicando que a prateleira foi esvaziada
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 4.");
@@ -809,7 +832,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = true;  // Payload assume o valor 0, indicando que a prateleira foi preenchida
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
                 }
                 break;
             default: // Inconsistência na mensagem(Não deve entrar aqui)
@@ -817,7 +840,6 @@ int main(){
                 break;
             }
 
-            NS_LOG_INFO("Mama mia Log");
             std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
             std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
         }
@@ -836,7 +858,7 @@ int main(){
             // Lógica para processar o pacote recebido
             // ...
             uint8_t buffer[packetSize];
-            packet->CopyData(buffer, packetSize);
+            packetSensor->CopyData(buffer, packetSize);
             messageData* data = (messageData*)malloc(sizeof(messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
@@ -856,7 +878,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = sensor_state_vector[4];  // Payload assume o valor da leitura do sensor
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 5.");
@@ -871,7 +893,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = false;  // Payload assume o valor 0, indicando que a prateleira foi esvaziada
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 5.");
@@ -886,7 +908,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = true;  // Payload assume o valor 0, indicando que a prateleira foi preenchida
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
                 }
                 break;
             default: // Inconsistência na mensagem(Não deve entrar aqui)
@@ -894,7 +916,6 @@ int main(){
                 break;
             }
 
-            NS_LOG_INFO("Mama mia Log");
             std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
             std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
         }
@@ -913,7 +934,7 @@ int main(){
             // Lógica para processar o pacote recebido
             // ...
             uint8_t buffer[packetSize];
-            packet->CopyData(buffer, packetSize);
+            packetSensor->CopyData(buffer, packetSize);
             messageData* data = (messageData*)malloc(sizeof(messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
@@ -933,7 +954,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = sensor_state_vector[5];  // Payload assume o valor da leitura do sensor
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 6.");
@@ -948,7 +969,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = false;  // Payload assume o valor 0, indicando que a prateleira foi esvaziada
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                 } else { // caso esteja vazia, avisa que não há mais leituras do sensor
                     NS_LOG_INFO("Log esvaziado. Não Há mais leituras do sensor da prateleira 6.");
@@ -963,7 +984,7 @@ int main(){
                     msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                     msg[3] = true;  // Payload assume o valor 0, indicando que a prateleira foi preenchida
                     packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                    serverSocket->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
+                    sensorSocket[1]->SendTo(packetSensor, 0, InetSocketAddress(intermediateInterfaces.GetAddress(1), port)); // repassa a mensagem para o nó intermediário entre servidor e sensores
                 }
                 break;
             default: // Inconsistência na mensagem(Não deve entrar aqui)
@@ -971,16 +992,61 @@ int main(){
                 break;
             }
 
-            NS_LOG_INFO("Mama mia Log");
             std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
             std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
         }
     });
     sensorSocket[5]->SetRecvPktInfo(true); // Enable receiving sender address information
 
-    gatewaySocket();
+    gatewaySocket->SetRecvCallback([&](Ptr<Socket> socket){
+        ns3::Ptr<ns3::Packet> packetGateway;
+        ns3::Address from;
+        std::cout << "Here" << std::endl;
+        while ((packetGateway = socket->RecvFrom(from)))
+        {
+            uint32_t packetSize = packetGateway->GetSize();
+            ns3::Ipv4Address senderAddress = ns3::InetSocketAddress::ConvertFrom(from).GetIpv4();
 
-    Simulator::Stop(Seconds(5.0));
+            // Lógica para processar o pacote recebido
+            // ...
+            uint8_t buffer[packetSize];
+            packetGateway->CopyData(buffer, packetSize);
+            messageData* data = (messageData*)malloc(sizeof(messageData));
+            data->source = buffer[0];
+            data->dest = buffer[1];
+            data->command = buffer[2];
+            data->payload = buffer[3];
+
+            switch (data->command)
+            {
+            case 1:
+                NS_LOG_INFO("Produto dispachado com sucesso");
+                break;
+            case 2:
+                NS_LOG_INFO("Produto armazenado com sucesso");
+                break;
+            case 5:
+                if(data->payload == 5)
+                    NS_LOG_INFO("Inconsistência de valores, alertando central");
+                else if(data->payload == 4)
+                    NS_LOG_INFO("Tentativa de armazenar produto em prateleira ocupada");
+                else if(data->payload == 3)
+                    NS_LOG_INFO("Tentativa de retirar produto de prateleira vazia");
+
+            default:
+                break;
+            }
+
+            std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
+            std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
+        }
+    });
+    for(uint8_t i = 0; i < 10; i++){
+        Simulator::Schedule(Seconds(i + 0.5), &gatewayEvent, gatewaySocket, intermediateInterfaces.GetAddress(0));
+        Simulator::Schedule(Seconds(i + 1.0), &verify, serverSocket, intermediateInterfaces.GetAddress(1));
+    }
+
+    Simulator::Stop(Seconds(11.0));
     ns3::Simulator::Run();
     ns3::Simulator::Destroy();
 

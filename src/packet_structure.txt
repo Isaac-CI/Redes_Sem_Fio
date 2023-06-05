@@ -10,5 +10,6 @@ Byte 3 - command: O byte de command indica qual é a operação realizada, poden
        - command = 0: Verificar estado atual dos sensores caso o source seja o servidor, ou não fazer nada caso o source seja o gateway.
        - command = 1: Esvaziar prateleira indicada no byte 4
        - command = 2: Preencher prateleira indicada no byte 4
+       - command = 5: Código de erro
 Byte 4 - payload: O byte 4 é o byte de payload, que carrega os dados do resultado do processamento do comando. Nem todas as instruções necessitam de um payload,
                   dessa forma, assume o valor 0 nelas
