@@ -1,22 +1,106 @@
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
-#include "ns3/mobility-module.h"
 #include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/wifi-module.h"
 #include "ns3/yans-wifi-helper.h"
-#include "ns3/ssid.h"
+#include "ns3/yans-wifi-channel.h"
+#include "ns3/applications-module.h"
+#include "ns3/internet-apps-module.h"
+#include "ns3/netanim-module.h"
 
-#define SENSOR_ADDRESS "10.0.0.0"
-#define INTERMEDIATE_ADDRESS "10.0.1.0"
-#define SERVER_ADDRESS "10.0.2.0"
-#define GATEWAY_ADDRESS "10.0.3.0"
+#define SENSOR_ADDRESS "10.1.1.0"
+#define INTERMEDIATE_ADDRESS "10.1.2.0"
+#define SERVER_ADDRESS "10.1.3.0"
+#define GATEWAY_ADDRESS "10.1.4.0"
 
 using namespace ns3;
 using namespace std;
 
-ns3::Ipv4InterfaceContainer sensorInterfaces, intermediateInterfaces, serverInterfaces, gatewayInterfaces;
+NS_LOG_COMPONENT_DEFINE("main");
+
+//leitura de sensores
+std::vector<bool> shelf1;
+std::vector<bool> shelf2;
+std::vector<bool> shelf3;
+std::vector<bool> shelf4;
+std::vector<bool> shelf5;
+std::vector<bool> shelf6;
+std::vector<bool> shelf7;
+std::vector<bool> shelf8;
+std::vector<bool> shelf9;
+std::vector<int> gateway_commands;
+std::vector<int> gateway_target;
+std::vector<bool> server_state_table;
+std::vector<bool> sensor_state_vector;
+
+int loadFile(void){
+    std::ifstream file("./data.txt");
+    if (file.is_open()) {
+        int number;
+        int count = 0;
+        int nCols = 10;
+        while (file >> number) {
+            if (count < nCols)
+            {
+                shelf1.push_back(number);
+            }else if (count < 2 * nCols)
+            {
+                shelf2.push_back(number);
+            }else if (count < 3 * nCols)
+            {
+                shelf3.push_back(number);
+            }else if (count < 4 * nCols)
+            {
+                shelf4.push_back(number);
+            }else if (count < 5 * nCols)
+            {
+                shelf5.push_back(number);
+            }else if (count < 6 * nCols)
+            {
+                shelf6.push_back(number);
+            }else if (count < 7 * nCols)
+            {
+                shelf7.push_back(number);
+            }else if (count < 8 * nCols)
+            {
+                shelf8.push_back(number);
+            }else if (count < 9 * nCols)
+            {
+                shelf9.push_back(number);
+            } else if(count < 10 * nCols){
+                gateway_commands.push_back(number);
+            } else if(count < 11 * nCols){
+                gateway_target.push_back(number);
+            }
+            count++;
+        }
+        file.close();
+        server_state_table.push_back(shelf1[0]);
+        server_state_table.push_back(shelf2[0]);
+        server_state_table.push_back(shelf3[0]);
+        server_state_table.push_back(shelf4[0]);
+        server_state_table.push_back(shelf5[0]);
+        server_state_table.push_back(shelf6[0]);
+        server_state_table.push_back(shelf7[0]);
+        server_state_table.push_back(shelf8[0]);
+        server_state_table.push_back(shelf9[0]);
+        for(int i = 0; i < server_state_table.size(); i++){
+            sensor_state_vector.push_back(server_state_table[i]);
+        }
+    } else {
+        std::cout << "Unable to open the file." << std::endl;
+        return 1; // Return an error code
+    }
+    return 0;
+}
 
 typedef struct{
-    uint8_t
+    uint8_t source;
+    uint8_t dest;
+    uint8_t command;
+    uint8_t payload;
 } messageData;
 
 // Função de callback para o recebimento de dados
@@ -24,7 +108,7 @@ void ReceivePacket(ns3::Ptr<ns3::Socket> socket)
 {
     ns3::Ptr<ns3::Packet> packet;
     ns3::Address from;
-
+    std::cout << "Here" << std::endl;
     while ((packet = socket->RecvFrom(from)))
     {
         uint32_t packetSize = packet->GetSize();
@@ -32,114 +116,25 @@ void ReceivePacket(ns3::Ptr<ns3::Socket> socket)
 
         // Lógica para processar o pacote recebido
         // ...
+        uint8_t buffer[packetSize];
+        packet->CopyData(buffer, packetSize);
+        messageData* data = (messageData*)malloc(sizeof(messageData));
+        data->source = buffer[0];
+        data->dest = buffer[1];
+        data->command = buffer[2];
+        data->payload = buffer[3];
 
         // Exemplo de impressão dos dados recebidos
+
+        NS_LOG_INFO("Mama mia Log");
         std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
+        std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
     }
 }
-
-// Função de callback para o recebimento de dados
-
-void SensorReceivePacket(ns3::Ptr<ns3::Socket> socket)
-{
-    // Mensagem: source - destino final - comando - dado
-    ns3::Ptr<ns3::Packet> packet;
-    ns3::Address from;
-    bool isSensor = false;
-    bool isIntermediate = false;
-    bool isServer = false;
-    bool isGateway = false;
-    while ((packet = socket->RecvFrom(from)))
-    {
-        uint32_t packetSize = packet->GetSize();
-        ns3::Ipv4Address senderAddress = ns3::InetSocketAddress::ConvertFrom(from).GetIpv4();
-        for(uint8_t i = 0; i < sensorInterfaces.GetN(); i++){
-            if(senderAddress == sensorInterfaces.GetAddress(i)){
-                isSensor = true;
-            }
-        }
-        if(!isSensor){
-            for(uint8_t i = 0; i  < intermediateInterfaces.GetN(); i++){
-                if(senderAddress == intermediateInterfaces.GetAddress(i)){
-                    isIntermediate = true;
-                }
-            }
-            if(!isIntermediate){
-                if(senderAddress == )
-            }
-        }
-
-        // Lógica para processar o pacote recebido
-        // ...
-
-        // Exemplo de impressão dos dados recebidos
-        std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
-    }
-}
-// Função de callback para o recebimento de dados
-
-void ServerReceivePacket(ns3::Ptr<ns3::Socket> socket)
-{
-    ns3::Ptr<ns3::Packet> packet;
-    ns3::Address from;
-
-    while ((packet = socket->RecvFrom(from)))
-    {
-        uint32_t packetSize = packet->GetSize();
-        ns3::Ipv4Address senderAddress = ns3::InetSocketAddress::ConvertFrom(from).GetIpv4();
-
-        // Lógica para processar o pacote recebido
-        // ...
-
-        // Exemplo de impressão dos dados recebidos
-        std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
-    }
-}// Função de callback para o recebimento de dados
-
-
-// // Comparar o endereço de origem com os endereços IP dos dispositivos de sensores
-// for (uint32_t i = 0; i < sensorInterfaces.GetN(); ++i)
-// {
-//     ns3::Ipv4Address sensorAddress = sensorInterfaces.GetAddress(i);
-
-//     if (senderAddress == sensorAddress)
-//     {
-//         // O pacote foi enviado pelo dispositivo de sensor com o endereço IP correspondente
-//         std::cout << "Pacote recebido do dispositivo de sensor " << i << std::endl;
-//         // Lógica adicional...
-//         break;
-//     }
-// }
-
-
-void IntermediateReceivePacket(ns3::Ptr<ns3::Socket> socket)
-{
-    ns3::Ptr<ns3::Packet> packet;
-    ns3::Address from;
-    Ipv4Address source = InetSocketAddress::ConvertFrom(from).GetIpv4();
-
-    while ((packet = socket->RecvFrom(from)))
-    {
-        if(source ==(Ipv4Address)SERVER_ADDRESS){
-            
-        } else if(source == (Ipv4Address)GATEWAY_ADDRESS){
-
-        } else{
-
-        }
-        
-        uint32_t packetSize = packet->GetSize();
-        ns3::Ipv4Address senderAddress = ns3::InetSocketAddress::ConvertFrom(from).GetIpv4();
-
-        // Lógica para processar o pacote recebido
-        // ...
-
-        // Exemplo de impressão dos dados recebidos
-        std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
-    }
-}
-
 int main(){
+
+    loadFile();
+    LogComponentEnable("main", LOG_LEVEL_ALL);
     NodeContainer sensorNodes;
     sensorNodes.Create(6);
 
@@ -152,6 +147,13 @@ int main(){
     NodeContainer gatewayNode;
     gatewayNode.Create(1);
 
+    //Create WIFI helper
+    WifiHelper wifi;
+    wifi.SetStandard(WIFI_STANDARD_80211ac);
+    wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("VhtMcs9"),
+                                 "ControlMode", StringValue("VhtMcs0"));
+    Config::Set("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/ChannelWidth", UintegerValue(20));
+
     //Create WIFI helpers for layers 1 and 2
     YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy;
@@ -160,9 +162,6 @@ int main(){
     //Create WIFI helpers for MAC addressing
     WifiMacHelper mac;
     Ssid ssid = Ssid("ns-3-ssid");
-
-    //Create WIFI helper
-    WifiHelper wifi;
 
     //Create a WIFI device container for the structured network
     NetDeviceContainer sensorDevices, serverDevice, gatewayDevice, intermediateDevices;
@@ -213,9 +212,9 @@ int main(){
         sensorMobilityModels[idx]->SetPosition(Vector(xCoord, yCoord, zCoord));
         sensorNodes.Get(idx)->AggregateObject(sensorMobilityModels[idx]);
     
-        zCoord = shelfGroup%2==0 ? 0.0 : zCoord+=10.0 ;
-        yCoord = shelfGroup%2==0 ? yCoord : yCoord-=25.0 ;
-        shelfGroup = shelfGroup%2==0 ? 1 : shelfGroup+=1 ;
+        zCoord = shelfGroup%2==0 ? 0.0 : zCoord + 10.0 ;
+        yCoord = shelfGroup%2==0 ? yCoord : yCoord - 25.0;
+        shelfGroup = shelfGroup%2==0 ? 1 : shelfGroup + 1 ;
     }
 
 
@@ -230,40 +229,200 @@ int main(){
 
     Ipv4AddressHelper address;
     address.SetBase(SENSOR_ADDRESS, "255.255.255.0");
-    sensorInterfaces = address.Assign(sensorDevices);
+    Ipv4InterfaceContainer sensorInterfaces = address.Assign(sensorDevices);
 
-    address.SetBase(INTERMEDIATE_ADDRESS, "255.255.255.0");
-    intermediateInterfaces = address.Assign(intermediateDevices);
+    //address.SetBase(INTERMEDIATE_ADDRESS, "255.255.255.0");
+    Ipv4InterfaceContainer intermediateInterfaces = address.Assign(intermediateDevices);
 
-    address.SetBase(SERVER_ADDRESS, "255.255.255.0");
-    serverInterfaces = address.Assign(serverDevice);
+    //address.SetBase(SERVER_ADDRESS, "255.255.255.0");
+    Ipv4InterfaceContainer serverInterface = address.Assign(serverDevice);
 
-    address.SetBase(GATEWAY_ADDRESS, "255.255.255.0");
-    gatewayInterfaces = address.Assign(gatewayDevice);
+    //address.SetBase(GATEWAY_ADDRESS, "255.255.255.0");
+    Ipv4InterfaceContainer gatewayInterface = address.Assign(gatewayDevice);
 
     ns3::Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    // Criar um socket UDP no nó de envio
-    ns3::Ptr<ns3::Socket> senderSocket = ns3::Socket::CreateSocket(sensorNodes.Get(0), ns3::UdpSocketFactory::GetTypeId());
-    ns3::InetSocketAddress senderAddress = ns3::InetSocketAddress(sensorInterfaces.GetAddress(0), 9); // Endereço IP do nó de servidor e porta
 
-    // Criar um socket UDP no nó de recebimento
-    ns3::Ptr<ns3::Socket> receiverSocket = ns3::Socket::CreateSocket(serverNode.Get(0), ns3::UdpSocketFactory::GetTypeId());
-    ns3::InetSocketAddress receiverAddress = ns3::InetSocketAddress(ns3::Ipv4Address::GetAny(), 9); // Qualquer endereço IP disponível e porta
 
-    // Associar o socket de recebimento com a função de callback
-    receiverSocket->Bind(receiverAddress);
-    receiverSocket->SetRecvCallback(ns3::MakeCallback(&ReceivePacket));
-
+    // Aplicação
+    std::cout << "\n--------Aplicação--------\n" <<std::endl;
+    uint32_t port = 5500;
     // Lógica para envio de dados
-    ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>(1024); // Tamanho do pacote em bytes
-    senderSocket->SendTo(packet, 0, senderAddress);
+    uint8_t* buffer = (uint8_t*)malloc(sizeof(messageData));
+    buffer[0] = 10;
+    buffer[1] = 11;
+    buffer[2] = 0;
+    buffer[3] = 0;
 
+    ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>(buffer, sizeof(messageData)); // Tamanho do pacote em bytes
+    Ptr<Socket> sensorSocket[sensorNodes.GetN()];
 
+    for (uint32_t i = 0; i < sensorNodes.GetN(); i++){
+        sensorSocket[i] = Socket::CreateSocket(sensorNodes.Get(i), TypeId::LookupByName("ns3::UdpSocketFactory"));
+        sensorSocket[i]->Bind(InetSocketAddress(sensorInterfaces.GetAddress(i), port));
+    }
 
-    // ...
-    // Applicação
+    // Server socket application
+    Ptr<Socket> serverSocket = Socket::CreateSocket(serverNode.Get(0), TypeId::LookupByName("ns3::UdpSocketFactory"));
+    serverSocket->Bind(InetSocketAddress(serverInterface.GetAddress(0), port));
 
+    // Intermediate socket applications
+    Ptr<Socket> intermediateSocketG = Socket::CreateSocket(intermediateNodes.Get(0), TypeId::LookupByName("ns3::UdpSocketFactory"));
+    intermediateSocketG->Bind(InetSocketAddress(intermediateInterfaces.GetAddress(0), port));
+
+    Ptr<Socket> intermediateSocketS = Socket::CreateSocket(intermediateNodes.Get(1), TypeId::LookupByName("ns3::UdpSocketFactory"));
+    intermediateSocketS->Bind(InetSocketAddress(intermediateInterfaces.GetAddress(1), port));
+
+    // Sending a 1-bit message from the sensor to the intermediate node
+    serverSocket->SendTo(packet, 0, InetSocketAddress(intermediateInterfaces.GetAddress(0), port));
+
+    // Intermediário entre server e gateway recebe a mensagem
+    intermediateSocketG->SetRecvCallback([&](Ptr<Socket> socket) {
+        ns3::Ptr<ns3::Packet> packetG;
+        ns3::Address from;
+        std::cout << "Here" << std::endl;
+        while ((packetG = socket->RecvFrom(from)))
+        {
+            uint32_t packetSize = packetG->GetSize();
+            ns3::Ipv4Address senderAddress = ns3::InetSocketAddress::ConvertFrom(from).GetIpv4();
+
+            // Lógica para processar o pacote recebido
+            // ...
+            uint8_t buffer[packetSize];
+            packet->CopyData(buffer, packetSize);
+            messageData* data = (messageData*)malloc(sizeof(messageData));
+            data->source = buffer[0];
+            data->dest = buffer[1];
+            data->command = buffer[2];
+            data->payload = buffer[3];
+
+            switch (data->source)
+            {
+            case 10: // Veio do servidor
+                // Repassa mensagem recebida do servidor para o gateway.
+                intermediateSocketG->SendTo(packetG, 0, InetSocketAddress(gatewayInterface.GetAddress(0), port));
+                
+                break;
+            case 13: // Veio do gateway
+                // Repassa mensagem recebida do gateway para o servidor.
+                intermediateSocketG->SendTo(packetG, 0, InetSocketAddress(serverInterface.GetAddress(0), port));
+
+                break;
+            default: // Inconsistência na mensagem
+                uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+                errorMsg[0] = 11; // quem manda é o intermediário entre gateway e servidor
+                errorMsg[1] = data->source; // endereço de quem enviou a mensagem
+                errorMsg[2] = 5;  // codigo de mensagem de erro
+                errorMsg[3] = 0;  // codigo que indica que o erro foi de fonte não-suportada
+                packetG = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                intermediateSocketG->SendTo(packetG, 0, InetSocketAddress(senderAddress, port)); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
+                break;
+            }
+
+            NS_LOG_INFO("Mama mia Log");
+            std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
+            std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
+        }
+    });
+    intermediateSocketS->SetRecvPktInfo(true); // Enable receiving sender address information
+    // Intermediário entre sensores e server recebe a mensagem
+    intermediateSocketS->SetRecvCallback([&](Ptr<Socket> socket) {
+        ns3::Ptr<ns3::Packet> packetS;
+        ns3::Address from;
+        std::cout << "Here" << std::endl;
+        while ((packetS = socket->RecvFrom(from)))
+        {
+            uint32_t packetSize = packetS->GetSize();
+            ns3::Ipv4Address senderAddress = ns3::InetSocketAddress::ConvertFrom(from).GetIpv4();
+
+            // Lógica para processar o pacote recebido
+            // ...
+            uint8_t buffer[packetSize];
+            packet->CopyData(buffer, packetSize);
+            messageData* data = (messageData*)malloc(sizeof(messageData));
+            data->source = buffer[0];
+            data->dest = buffer[1];
+            data->command = buffer[2];
+            data->payload = buffer[3];
+
+            if(data->source == 10){ // Veio do servidor
+            // Repassa mensagem recebida do servidor para os sensores que a interessam.
+                switch (data->command)
+                {
+                    case 0: // servidor deseja descobrir estado atual dos sensores
+                        for(uint8_t i = 0; i < 6; i++){ // repassa a mensagem para cada um dos sensores solicitando seus valores atuais
+                            intermediateSocketS->SendTo(packetS, 0, InetSocketAddress(sensorInterfaces.GetAddress(i), port));
+                        }
+                        break;
+                    case 1: // servidor deseja esvaziar uma das prateleiras
+                        if(data->dest > 6 || data->dest < 0){ // caso o destino esteja fora do intervalo permitido, isto é, não seja o identificador de algum sensor
+                            uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+                            errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
+                            errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
+                            errorMsg[2] = 5;  // codigo de mensagem de erro
+                            errorMsg[3] = 1;  // codigo que indica que o erro foi de destino inválido
+                            packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                            intermediateSocketG->SendTo(packetS, 0, InetSocketAddress(senderAddress, port)); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
+                        }else{
+                            intermediateSocketS->SendTo(packetS, 0, InetSocketAddress(sensorInterfaces.GetAddress(data->dest - 1), port)); // repassa a mensagem para o sensor a ser esvaziado
+                        }
+
+                        break;
+                    case 2: // servidor deseja preencher uma prateleira
+                        if(data->dest > 6 || data->dest < 0){ // caso o destino esteja fora do intervalo permitido, isto é, seja o identificador de algum sensor
+                            uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+                            errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
+                            errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
+                            errorMsg[2] = 5;  // codigo de mensagem de erro
+                            errorMsg[3] = 1;  // codigo que indica que o erro foi de destino inválido
+                            packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                            intermediateSocketG->SendTo(packetS, 0, InetSocketAddress(senderAddress, port)); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
+                            
+                            break;
+                        }
+                        uint8_t* msg = (uint8_t*)malloc(sizeof(messageData));
+                        msg[0] = data->source; // A fonte da mensagem permanece inalterada
+                        msg[1] = data->dest;  // endereço da prateleira que deve ser preenchida
+                        msg[2] = data->command;  // codigo de mensagem de preenchimento de prateleira
+                        msg[3] = 0;  // não importa, deixo em 0.
+                        packetS = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
+                        intermediateSocketS->SendTo(packetS, 0, InetSocketAddress(sensorInterfaces.GetAddress(data->dest - 1), port)); // repassa a mensagem para o sensor a ser preenchido
+
+                        break;
+                    default: // instrução inválida, envia mensagem de erro de volta para o nó que enviou a mensagem original.
+                        uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+                        errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
+                        errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
+                        errorMsg[2] = 5;  // codigo de mensagem de erro
+                        errorMsg[3] = 2;  // codigo que indica que o erro foi de comando inválido
+                        packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                        intermediateSocketG->SendTo(packetS, 0, InetSocketAddress(senderAddress, port)); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
+
+                        break;
+                }
+            } else {
+                if(data->source > 0 && data->source <= 6){ // é algum dos sensores
+                    intermediateSocketS->SendTo(packetS, 0, InetSocketAddress(serverInterface.GetAddress(0), port)); // repassa a mensagem para o servidor
+                } else { // Inconsistência na mensagem
+                        uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+                        errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
+                        errorMsg[1] = data->source; // endereço de quem enviou a mensagem
+                        errorMsg[2] = 5;  // codigo de mensagem de erro
+                        errorMsg[3] = 0;  // codigo que indica que o erro foi de fonte inválida
+                        packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                        intermediateSocketG->SendTo(packetS, 0, InetSocketAddress(senderAddress, port)); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
+                    }
+
+                }
+
+            NS_LOG_INFO("Mama mia Log");
+            std::cout << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << std::endl;
+            std::cout << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << std::endl;
+        }
+    });
+    intermediateSocketS->SetRecvPktInfo(true); // Enable receiving sender address information
+
+    Simulator::Stop(Seconds(5.0));
     ns3::Simulator::Run();
     ns3::Simulator::Destroy();
 
