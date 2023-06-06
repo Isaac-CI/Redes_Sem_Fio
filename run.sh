@@ -11,4 +11,4 @@ cp -r src/ ${NS3_DIR}/scratch
 cd ${NS3_DIR}
 
 # 3. Running NS3
-./ns3 run scratch/src/components/main.cc
+./ns3 run scratch/src/main.cc

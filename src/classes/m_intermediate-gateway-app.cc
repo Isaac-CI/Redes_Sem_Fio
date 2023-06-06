@@ -1,5 +1,5 @@
 #include "ns3/log.h"
-#include "intermediate-gateway-app.h"
+#include "m_intermediate-gateway-app.h"
 #include "ns3/udp-socket.h"
 #include "ns3/simulator.h"
 #include "ns3/csma-net-device.h"

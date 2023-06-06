@@ -1,7 +1,7 @@
 #ifndef NS3_UDP_SERVER_APP_H
 #define NS3_UDP_SERVER_APP_H
 #include "ns3/socket.h"
-#include "../components/libRedes.h"
+#include "libRedes.h"
 #include "ns3/application.h"
 
 namespace ns3
