@@ -49,9 +49,9 @@ namespace ns3
         receiver_socket = nullptr;
         sender_socket = nullptr;
     }
-    ServerApp::ServerApp(Ipv4Address addr1, Ipv4Address addr2, Ipv4Address addr3, LibRedes handler)
+    ServerApp::ServerApp(Ipv4Address addr1, Ipv4Address addr2, Ipv4Address addr3, int Id, LibRedes handler)
     {
-        id = 10;
+        id = Id;
         m_addr = addr1;
         addrIGS = addr2;
         addrISS = addr3;

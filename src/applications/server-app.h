@@ -10,7 +10,7 @@ namespace ns3
     {
         public:
             ServerApp ();
-            ServerApp (Ipv4Address, Ipv4Address, Ipv4Address, LibRedes);
+            ServerApp (Ipv4Address, Ipv4Address, Ipv4Address, int, LibRedes);
             virtual ~ServerApp ();
 
             static TypeId GetTypeId ();
