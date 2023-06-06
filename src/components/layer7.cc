@@ -118,43 +118,45 @@ namespace ns3
     {
         //Receiver socket
         TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
-        receiver_socket = Socket::CreateSocket(GetNode(), tid);
+        receiver_socket = UdpSocket::CreateSocket(GetNode(), tid);
 
         if(id > 0 && id <= 6){
             SetupReceiveSocket(receiver_socket, addrSensors[id - 1]);
             m_addr = addrSensors[id - 1];
             std::cout << "Sensor node, addr: " << m_addr << std::endl;
-            receiver_socket->SetRecvCallback(MakeCallback(&Layer7::SensorCallback, this));
+            cb = MakeCallback(&Layer7::SensorCallback, this);
             }
         else if(id == 10){
             SetupReceiveSocket(receiver_socket, addrServer);
             m_addr = addrServer;
             std::cout << "Server node, addr: " << m_addr << std::endl;
-            receiver_socket->SetRecvCallback(MakeCallback(&Layer7::ServerCallback, this));
+            cb = MakeCallback(&Layer7::ServerCallback, this);
             }
         else if(id == 11){
             SetupReceiveSocket(receiver_socket, addrIGS);
             m_addr = addrIGS;
             std::cout << "Intermediate node(Server - Gateway), addr: " << m_addr << std::endl;
-            receiver_socket->SetRecvCallback(MakeCallback(&Layer7::IGSCallback, this));
+            cb = MakeCallback(&Layer7::IGSCallback, this);
             }
         else if(id == 12){
             SetupReceiveSocket(receiver_socket, addrITS);
             m_addr = addrITS;
             std::cout << "Intermediate node(Server - Sensors), addr: " << m_addr << std::endl;
-            receiver_socket->SetRecvCallback(MakeCallback(&Layer7::ITSCallback, this));
+            cb = MakeCallback(&Layer7::ITSCallback, this);
             }
         else if(id == 13){
             SetupReceiveSocket(receiver_socket, addrGateway);
             m_addr = addrGateway;
             std::cout << "Gateway node, addr: " << m_addr << std::endl;
-            receiver_socket->SetRecvCallback(MakeCallback(&Layer7::GatewayCallback, this));
             }
         else
             NS_LOG_INFO(RED_CODE << "Erro, ID de objeto inválido. Inviável configurar corretamente o callback" << END_CODE);
 
+        receiver_socket->SetRecvCallback(cb);
+        receiver_socket->SetRecvPktInfo(true);
+        receiver_socket->SetAllowBroadcast(true);
         //Sender Socket
-        sender_socket = Socket::CreateSocket(GetNode(), tid);
+        sender_socket = UdpSocket::CreateSocket(GetNode(), tid);
     }
 
     void Layer7::SensorCallback(Ptr<Socket> socket) {
@@ -456,7 +458,6 @@ namespace ns3
             data->command = buffer[2];
             data->payload = buffer[3];
             uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
-            uint8_t* msg = (uint8_t*)malloc(sizeof(messageData));
 
             if(data->source == 10){ // Veio do servidor
             // Repassa mensagem recebida do servidor para os sensores que a interessam.
@@ -588,6 +589,7 @@ namespace ns3
     {
         NS_LOG_FUNCTION (this << m_addr << packet->ToString() << destination << port << Simulator::Now());
         sender_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(destination), port));
+        sender_socket->SetAllowBroadcast(true);
         if(sender_socket->Send(packet) == -1)
             std::cout << "Failed Transmission" << std::endl;
         else{

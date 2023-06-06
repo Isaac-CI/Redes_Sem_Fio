@@ -89,29 +89,29 @@ int main (void)
     // anim.SetConstantPosition(gatewayNode.Get(0), xCoord, yCoord, zCoord);
 
     Ptr<ConstantPositionMobilityModel> serverMobilityModel = CreateObject<ConstantPositionMobilityModel>();
-    xCoord = 100.0;
-    yCoord = 100.0;
+    xCoord = 10.0;
+    yCoord = 10.0;
     serverMobilityModel->SetPosition(ns3::Vector(xCoord, yCoord, zCoord));
     serverNode.Get(0)->AggregateObject(serverMobilityModel);
     // anim.SetConstantPosition(serverNode.Get(0), xCoord, yCoord, zCoord);
 
     Ptr<ConstantPositionMobilityModel> gatewayServerIntermediateMobilityModel = CreateObject<ConstantPositionMobilityModel>();
-    xCoord = 50.0;
-    yCoord = 50.0;
+    xCoord = 5.0;
+    yCoord = 5.0;
     gatewayServerIntermediateMobilityModel->SetPosition(ns3::Vector(xCoord, yCoord, zCoord));
     intermediateNodes.Get(0)->AggregateObject(gatewayServerIntermediateMobilityModel);
     // anim.SetConstantPosition(intermediateNodes.Get(0), xCoord, yCoord, zCoord);
 
     Ptr<ConstantPositionMobilityModel> serverShelfIntermediateMobilityModel = CreateObject<ConstantPositionMobilityModel>();
-    xCoord = 150.0;
-    yCoord = 100.0;
+    xCoord = 15.0;
+    yCoord = 10.0;
     serverShelfIntermediateMobilityModel->SetPosition(ns3::Vector(xCoord, yCoord, zCoord));
     intermediateNodes.Get(1)->AggregateObject(serverShelfIntermediateMobilityModel);
     // anim.SetConstantPosition(intermediateNodes.Get(1), xCoord, yCoord, zCoord);
 
     std::vector<Ptr<ConstantPositionMobilityModel>> sensorMobilityModels;
-    xCoord = 175.0;
-    yCoord = 125.0;
+    xCoord = 17.5;
+    yCoord = 12.5;
     uint shelfGroup = 1;
 
     for(uint idx = 0; idx < sensorNodes.GetN(); idx++){
@@ -121,8 +121,8 @@ int main (void)
         sensorNodes.Get(idx)->AggregateObject(sensorMobilityModels[idx]);
         // anim.SetConstantPosition(sensorNodes.Get(idx), xCoord, yCoord, zCoord);
 
-        zCoord = shelfGroup%2==0 ? 0.0 : zCoord + 10.0 ;
-        yCoord = shelfGroup%2==0 ? yCoord : yCoord - 25.0;
+        zCoord = shelfGroup%2==0 ? 0.0 : zCoord + 1.0 ;
+        yCoord = shelfGroup%2==0 ? yCoord : yCoord - 2.5;
         shelfGroup = shelfGroup%2==0 ? 1 : shelfGroup + 1 ;
     }
 
@@ -225,19 +225,18 @@ int main (void)
         buffer[2] = 0; // Verifica status dos sensores
         buffer[3] = 0; // não importa, fica em 0
         Ptr<Packet> packet1 = Create<Packet>(buffer, sizeof(Layer7::messageData));
-        Simulator::Schedule(Seconds(i + 1), &Layer7::SendPacket, udp0, packet1, intermediateInterfaces.GetAddress(1), 5500);
+        Simulator::Schedule(Seconds(i + 2), &Layer7::SendPacket, udp0, packet1, intermediateInterfaces.GetAddress(1), 5500);
 
         buffer2[0] = 13; // Gateway
         buffer2[1] = 10; // Server
         buffer2[2] = handler.gateway_commands[i]; // Verifica status dos sensores
         buffer2[3] = handler.gateway_target[i]; 
         Ptr<Packet> packet2 = Create<Packet>(buffer2, sizeof(Layer7::messageData));
-        Simulator::Schedule(Seconds(i + 0.5), &Layer7::SendPacket, udp1, packet2, intermediateInterfaces.GetAddress(0), 5500);
+        Simulator::Schedule(Seconds(i + 1.5), &Layer7::SendPacket, udp1, packet2, intermediateInterfaces.GetAddress(0), 5500);
     }
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-
-    apps.Start(Seconds(0));
+    apps.Start(Seconds(1.0));
     apps.Stop(Seconds(12.0));
     
     Simulator::Stop(Seconds(15.0));
