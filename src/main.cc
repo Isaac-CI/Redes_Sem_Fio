@@ -434,6 +434,7 @@ int main(){
             if(data->source == 13){ // Fonte é o gateway
 
                 uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+                uint8_t* msg = (uint8_t*)malloc(sizeof(messageData));
                 switch (data->command)
                 {
                 case 0: // Comando recebido é não fazer nada.

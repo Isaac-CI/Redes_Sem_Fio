@@ -19,7 +19,7 @@
 #define BOLD_CODE "\033[1m"
 #define END_CODE "\033[0m"
 
-#define PORT 3000
+#define PORT 5500
 
 namespace ns3
 {
@@ -112,9 +112,7 @@ namespace ns3
         if (socket->Bind(local) == -1)
         {
             NS_FATAL_ERROR("Failed to bind socket");
-        } else {
-            std::cout << "Matata" << std::endl;
-        }
+        } 
     }
     void Layer7::StartApplication()
     {
@@ -124,23 +122,32 @@ namespace ns3
 
         if(id > 0 && id <= 6){
             SetupReceiveSocket(receiver_socket, addrSensors[id - 1]);
+            m_addr = addrSensors[id - 1];
+            std::cout << "Sensor node, addr: " << m_addr << std::endl;
             receiver_socket->SetRecvCallback(MakeCallback(&Layer7::SensorCallback, this));
-            
             }
         else if(id == 10){
             SetupReceiveSocket(receiver_socket, addrServer);
+            m_addr = addrServer;
+            std::cout << "Server node, addr: " << m_addr << std::endl;
             receiver_socket->SetRecvCallback(MakeCallback(&Layer7::ServerCallback, this));
             }
         else if(id == 11){
             SetupReceiveSocket(receiver_socket, addrIGS);
+            m_addr = addrIGS;
+            std::cout << "Intermediate node(Server - Gateway), addr: " << m_addr << std::endl;
             receiver_socket->SetRecvCallback(MakeCallback(&Layer7::IGSCallback, this));
             }
         else if(id == 12){
             SetupReceiveSocket(receiver_socket, addrITS);
+            m_addr = addrITS;
+            std::cout << "Intermediate node(Server - Sensors), addr: " << m_addr << std::endl;
             receiver_socket->SetRecvCallback(MakeCallback(&Layer7::ITSCallback, this));
             }
         else if(id == 13){
             SetupReceiveSocket(receiver_socket, addrGateway);
+            m_addr = addrGateway;
+            std::cout << "Gateway node, addr: " << m_addr << std::endl;
             receiver_socket->SetRecvCallback(MakeCallback(&Layer7::GatewayCallback, this));
             }
         else
@@ -290,7 +297,7 @@ namespace ns3
                             errorMsg[2] = 5;  // codigo de mensagem de erro
                             errorMsg[3] = 3;  // codigo que indica que o erro foi de tentativa de esvaziamento de prateleira vazia
                             packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
-                            SendPacket(packetServer, senderAddress, PORT);
+                            SendPacket(packetServer, Ipv4Address::GetBroadcast(), PORT); // Envia o erro por broadcast
                             //sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                             //sender_socket->Send(packetServer); // envia de volta parao nó intermediário entre servidor e gateway, indicando que sua solicitação foi inválida
                         }
@@ -326,7 +333,7 @@ namespace ns3
                             errorMsg[2] = 5;  // codigo de mensagem de erro
                             errorMsg[3] = 4;  // codigo que indica que o erro foi de tentativa de preenchimento de prateleira cheia
                             packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
-                            SendPacket(packetServer, senderAddress, PORT);
+                            SendPacket(packetServer, Ipv4Address::GetBroadcast(), PORT); // Envia por Boradcast a mensgem de erro
                             // sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                             // sender_socket->Send(packetServer); // envia de volta para o nó intermediário entre servidor e gateway, indicando que sua solicitação foi inválida
                         }
@@ -579,8 +586,21 @@ namespace ns3
 
     void Layer7::SendPacket(Ptr<Packet> packet, Ipv4Address destination, uint16_t port)
     {
-        NS_LOG_FUNCTION (this << packet << destination << port << Simulator::Now());
+        NS_LOG_FUNCTION (this << m_addr << packet->ToString() << destination << port << Simulator::Now());
         sender_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(destination), port));
-        sender_socket->Send(packet);
+        if(sender_socket->Send(packet) == -1)
+            std::cout << "Failed Transmission" << std::endl;
+        else{
+            uint8_t* buff  = (uint8_t*)malloc(packet->GetSize());
+            packet->CopyData(buff, packet->GetSize());
+            int i[4];
+            i[0] = buff[0];
+            i[1] = buff[1];
+            i[2] = buff[2];
+            i[3] = buff[3];
+            i[4] = buff[4];
+            std::cout << "Sending: " << i[0] << " " << i[1] << " " << i[2] << " " << i[3] << " " << " to " << destination << std::endl;
+            }
+
     }
 } // namespace ns3

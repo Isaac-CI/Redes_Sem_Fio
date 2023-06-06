@@ -50,6 +50,7 @@ namespace ns3
             Ipv4Address addrGateway; // endereço do nó gateway
             Ipv4Address addrSensors[6]; // Array de endereços dos sensores
             Ipv4Address addrServer;  //Endereço do servidor
+            Ipv4Address m_addr; // endereço do nó cuja aplicação está instalada
             Ptr<Socket> receiver_socket; /**< A socket to receive data */
             Ptr<Socket> sender_socket; /**< A socket to listen on a specific port */
     };
