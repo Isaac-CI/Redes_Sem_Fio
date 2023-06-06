@@ -9,13 +9,14 @@
 #include "ns3/applications-module.h"
 #include "ns3/internet-apps-module.h"
 #include "ns3/netanim-module.h"
+#include "components/libRedes.h"
 #include <fstream>
 #include <vector>
 
-#define SENSOR_ADDRESS "10.1.1.0"
-#define INTERMEDIATE_ADDRESS "10.1.2.0"
-#define SERVER_ADDRESS "10.1.3.0"
-#define GATEWAY_ADDRESS "10.1.4.0"
+#define AP_ADDRESS "10.1.1.0"
+// #define INTERMEDIATE_ADDRESS "10.1.2.0"
+// #define SERVER_ADDRESS "10.1.3.0"
+// #define GATEWAY_ADDRESS "10.1.4.0"
 
 using namespace ns3;
 
@@ -30,7 +31,11 @@ std::queue<bool> shelf5;
 std::queue<bool> shelf6;
 std::queue<int> gateway_commands;
 std::queue<int> gateway_target;
+
+// Estado que o servidor tem dos sensores
 std::vector<bool> server_state_table;
+
+// Modificado e lido apenas pelos sensores: indica que o sensor serve como atuador
 std::vector<bool> sensor_state_vector;
 
 int loadFile(void){
@@ -220,19 +225,14 @@ int main(){
     //Create an Address Helper
 
     Ipv4AddressHelper address;
-    address.SetBase(SENSOR_ADDRESS, "255.255.255.0");
+    address.SetBase(AP_ADDRESS, "255.255.255.0");
+    
     Ipv4InterfaceContainer sensorInterfaces = address.Assign(sensorDevices);
-
-    //address.SetBase(INTERMEDIATE_ADDRESS, "255.255.255.0");
     Ipv4InterfaceContainer intermediateInterfaces = address.Assign(intermediateDevices);
-
-    //address.SetBase(SERVER_ADDRESS, "255.255.255.0");
     Ipv4InterfaceContainer serverInterface = address.Assign(serverDevice);
-
-    //address.SetBase(GATEWAY_ADDRESS, "255.255.255.0");
     Ipv4InterfaceContainer gatewayInterface = address.Assign(gatewayDevice);
 
-    ns3::Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+    //ns3::Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
     // Aplicação
     std::cout << "\n--------Aplicação--------\n" <<std::endl;
@@ -1019,13 +1019,13 @@ int main(){
 
             switch (data->command)
             {
-            case 1:
+            case 1: // Esvaziamento finalizado com sucesso
                 NS_LOG_INFO("Produto dispachado com sucesso");
                 break;
-            case 2:
+            case 2: // Preenchimendo finalizado com sucesso
                 NS_LOG_INFO("Produto armazenado com sucesso");
                 break;
-            case 5:
+            case 5: // erro
                 if(data->payload == 5)
                     NS_LOG_INFO("Inconsistência de valores, alertando central");
                 else if(data->payload == 4)

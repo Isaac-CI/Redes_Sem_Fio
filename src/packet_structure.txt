@@ -1,7 +1,7 @@
 Os pacotes enviados na rede ad hoc implementada seguem o seguinte padrão:
 são enviados 4 bytes, cada um com seu respectivo objetivo, que são:
 Byte 1 - source: O byte de source indica qual é a fonte da mensagem, isto é, qual é o nó que a gerou.
-       - source = 1..6: Sensores(preteleiras)
+       - source = [1,6]: Sensores(preteleiras)
        - source = 10: servidor
        - source = 11 ou 12: Nó Intermediário
        - source = 13: Gateway 
