@@ -1,5 +1,5 @@
-#ifndef NS3_UDP_ARQ_APPLICATION_H
-#define NS3_UDP_ARQ_APPLICATION_H
+#ifndef NS3_GATEWAY_ARQ_APPLICATION_H
+#define NS3_UDP_GATEWAY_APPLICATION_H
 #include "ns3/socket.h"
 #include "libRedes.h"
 #include "ns3/application.h"

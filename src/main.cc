@@ -1,8 +1,9 @@
-#include "m_gateway-app.h"
-#include "m_intermediate-gateway-app.h"
-#include "m_intermediate-sensor-app.h"
-#include "m_sensor-app.h"
-#include "m_server-app.h"
+#include "classes/interfaces/m_gateway-app.h"
+#include "classes/interfaces/m_intermediate-gateway-app.h"
+#include "classes/interfaces/m_intermediate-sensor-app.h"
+#include "classes/interfaces/m_sensor-app.h"
+#include "classes/interfaces/m_server-app.h"
+#include "classes/interfaces/libRedes.h"
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
@@ -140,8 +141,8 @@ int main (void)
         Ptr<SensorApp> udp_sensor = Create<SensorApp> (sensorInterfaces.GetAddress(i),
                                                 intermediateInterfaces.GetAddress(1),
                                                 i + 1, handler);
-        sensorNodes.Get(i)->AddApplication(udp_app);
-        apps.Add(udp_app);
+        sensorNodes.Get(i)->AddApplication(udp_sensor);
+        apps.Add(udp_sensor);
     }
 
     Ptr<ServerApp> server_app = Create<ServerApp>(serverInterface.GetAddress(0),
@@ -151,7 +152,7 @@ int main (void)
     serverNode.Get(0)->AddApplication(server_app);
     apps.Add(server_app);
 
-    PTR<IGS> IGS_app = Create<IGS>(intermediateInterfaces.GetAddress(0),
+    Ptr<IGS> IGS_app = Create<IGS>(intermediateInterfaces.GetAddress(0),
                                     serverInterface.GetAddress(0),
                                     gatewayInterface.GetAddress(0),
                                     11, handler);
@@ -160,7 +161,7 @@ int main (void)
 
 
     Ptr<ISS> ISS_app = Create<ISS>(intermediateInterfaces.GetAddress(1),
-                                    serverInterface.GetAddress(0)
+                                    serverInterface.GetAddress(0),
                                     sensorInterfaces.GetAddress(0), 
                                     sensorInterfaces.GetAddress(1), 
                                     sensorInterfaces.GetAddress(2), 
@@ -180,22 +181,22 @@ int main (void)
     
     Ptr<ServerApp> udp_server = DynamicCast <ServerApp> (apps.Get(6));
     Ptr<GatewayApp> udp_gateway = DynamicCast <GatewayApp> (apps.Get(9));
-    uint8_t* buffer = (uint8_t*)malloc(sizeof(Layer7::messageData));
-    uint8_t* buffer2 = (uint8_t*)malloc(sizeof(Layer7::messageData));
+    uint8_t* buffer = (uint8_t*)malloc(sizeof(LibRedes::messageData));
+    uint8_t* buffer2 = (uint8_t*)malloc(sizeof(LibRedes::messageData));
     for(uint8_t i = 0; i < 10; i++){
         buffer[0] = 10; // Server
         buffer[1] = 0; // Broadcast
         buffer[2] = 0; // Verifica status dos sensores
         buffer[3] = 0; // não importa, fica em 0
-        Ptr<Packet> packet1 = Create<Packet>(buffer, sizeof(Layer7::messageData));
-        Simulator::Schedule(Seconds(i + 2), &Layer7::SendPacket, udp_server, packet1, intermediateInterfaces.GetAddress(1), 5500);
+        Ptr<Packet> packet1 = Create<Packet>(buffer, sizeof(LibRedes::messageData));
+        Simulator::Schedule(Seconds(i + 2), &ServerApp::SendPacket, udp_server, packet1, intermediateInterfaces.GetAddress(1), 5500);
 
         buffer2[0] = 13; // Gateway
         buffer2[1] = 10; // Server
         buffer2[2] = handler.gateway_commands[i]; // Verifica status dos sensores
         buffer2[3] = handler.gateway_target[i]; 
-        Ptr<Packet> packet2 = Create<Packet>(buffer2, sizeof(Layer7::messageData));
-        Simulator::Schedule(Seconds(i + 1.5), &Layer7::SendPacket, udp_gateway, packet2, intermediateInterfaces.GetAddress(0), 5500);
+        Ptr<Packet> packet2 = Create<Packet>(buffer2, sizeof(LibRedes::messageData));
+        Simulator::Schedule(Seconds(i + 1.5), &GatewayApp::SendPacket, udp_gateway, packet2, intermediateInterfaces.GetAddress(0), 5500);
     }
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
