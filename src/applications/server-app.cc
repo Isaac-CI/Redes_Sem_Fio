@@ -44,7 +44,7 @@ namespace ns3
     ServerApp::ServerApp()
     {
         id = 0;
-        addrITS = Ipv4Address::GetAny();
+        addrISS = Ipv4Address::GetAny();
         addrIGS = Ipv4Address::GetAny();
         receiver_socket = nullptr;
         sender_socket = nullptr;
@@ -54,7 +54,7 @@ namespace ns3
         id = 10;
         m_addr = addr1;
         addrIGS = addr2;
-        addrITS = addr3;
+        addrISS = addr3;
         shelves = handler.shelves;
         gateway_commands = handler.gateway_commands;
         gateway_target = handler.gateway_target;
@@ -148,8 +148,8 @@ namespace ns3
                             msg[2] = data->command;  // codigo de mensagem de esvaziamento de prateleira
                             msg[3] = 0;  // não importa, deixo em 0.
                             packetServer = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                            SendPacket(packetServer, addrITS, PORT);
-                            // sender_socket->Connect(InetSocketAddress(addrITS, PORT));
+                            SendPacket(packetServer, addrISS, PORT);
+                            // sender_socket->Connect(InetSocketAddress(addrISS, PORT));
                             // sender_socket->Send(packetServer); // repassa a mensagem para o nó intermediário entre servidor e sensor
 
                         } else { // Se a prateleira estiver vazia, envia mensagem de erro, indicando que a solicitação do gateway é inválida
@@ -184,8 +184,8 @@ namespace ns3
                             msg[2] = data->command;  // codigo de mensagem de preenchimento de prateleira
                             msg[3] = 0;  // não importa, deixo em 0.
                             packetServer = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                            SendPacket(packetServer, addrITS, PORT);
-                            //sender_socket->Connect(InetSocketAddress(addrITS, PORT));
+                            SendPacket(packetServer, addrISS, PORT);
+                            //sender_socket->Connect(InetSocketAddress(addrISS, PORT));
                             //sender_socket->Send(packetServer);  // repassa a mensagem para o nó intermediário entre servidor e sensores
 
                         } else { // Se a prateleira estiver cheia, envia mensagem de erro, indicando que a solicitação do gateway é inválida
@@ -208,14 +208,14 @@ namespace ns3
             } else if(data->source > 0 && data->source <= 6){ // Fonte é um dos sensores
                 if(data->payload != state_table[data->source - 1]){ // Caso ocorra inconsistência entre a tabela do servidor e os dados enviados pelo sensor
                     state_table[data->source - 1] = !state_table[data->source - 1]; // Atualiza a tabela do servidor
-                    NS_LOG_INFO("Discrepância entre leitura esperada e real dos sensores, enviando mensagem de erro para Gateway.");
+                    NS_LOG_INFO("Discrepância entre leitura esperada e real dos sensores, enviando mensagem de erro por Broadcast");
                     uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
                             errorMsg[0] = 10; // quem manda é o servidor
                             errorMsg[1] = 13; // endereço de gateway
                             errorMsg[2] = 5;  // codigo de mensagem de erro
                             errorMsg[3] = 5;  // codigo que indica que o erro foi de tentativa de inconsistência de valores.
                             packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
-                            SendPacket(packetServer, addrIGS, PORT);
+                            SendPacket(packetServer, Ipv4Address::GetBroadcast(), PORT); // Envia mensagem de erro por broadcast
                             //sender_socket->Connect(InetSocketAddress(addrIGS, PORT));
                             //sender_socket->Send(packetServer); // envia de volta para o nó intermediário entre servidor e gateway, indicando que ocorreu erro
                 }else{ // Caso o payload seja consistente com a tabela do servidor

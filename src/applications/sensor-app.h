@@ -34,7 +34,7 @@ namespace ns3
             
             ns3::Callback<void, Ptr<Socket>> cb;
             int id; // identificador do nó. Caso seja sensor, vai de 1 até 6. Caso seja servidor, id = 10. Caso seja intermediário entre servidor e gateway, é 11. Se for o intermediário entre servidor e sensores é 12 e por fim, caso seja o gateway, id é 13.
-            Ipv4Address addrITS; // endereço do nó intermediário entre servidor e sensores
+            Ipv4Address addrISS; // endereço do nó intermediário entre servidor e sensores
             Ipv4Address m_addr; // endereço do nó cuja aplicação está instalada
             Ptr<Socket> receiver_socket; /**< A socket to receive data */
             Ptr<Socket> sender_socket; /**< A socket to listen on a specific port */
