@@ -11,6 +11,8 @@
 #include "ns3/applications-module.h"
 #include "ns3/internet-apps-module.h"
 #include "ns3/netanim-module.h"
+#include "ns3/trace-helper.h"
+
 
 #define AP_ADDRESS "10.1.1.0"
 
@@ -19,40 +21,22 @@ using namespace ns3;
 int main (void)
 {
     LogComponentEnable("Layer7", LOG_LEVEL_ALL);
+
     LibRedes handler = LibRedes();
 
     handler.loadFile();
 
-    // ns3::AnimationInterface anim("animation.xml");
-
     NodeContainer sensorNodes;
     sensorNodes.Create(6);
-    // for (uint32_t i = 0; i < sensorNodes.GetN(); ++i){
-    //     anim.UpdateNodeDescription(sensorNodes.Get(i), "Sensor " + std::to_string(i));
-    //     anim.UpdateNodeColor(sensorNodes.Get(i), 0, 255, 0);
-    //     anim.UpdateNodeSize(sensorNodes.Get(i), 5.0, 5.0);
-    // }
-
 
     NodeContainer intermediateNodes;
     intermediateNodes.Create(2);
-    // for (uint32_t i = 0; i < intermediateNodes.GetN(); ++i){
-    //     anim.UpdateNodeDescription(intermediateNodes.Get(i), "Intermediate " + std::to_string(i));
-    //     anim.UpdateNodeColor(intermediateNodes.Get(i), 255, 165, 0);
-    //     anim.UpdateNodeSize(intermediateNodes.Get(i), 10.0, 10.0);
-    // }
 
     NodeContainer serverNode;
     serverNode.Create(1);
-    // anim.UpdateNodeDescription(serverNode.Get(0), "Server");
-    // anim.UpdateNodeColor(serverNode.Get(0), 255, 0, 0);
-    // anim.UpdateNodeSize(serverNode.Get(0), 20.0, 20.0);
 
     NodeContainer gatewayNode;
     gatewayNode.Create(1);
-    // anim.UpdateNodeDescription(gatewayNode.Get(0), "Gateway");
-    // anim.UpdateNodeColor(gatewayNode.Get(0), 0, 0, 255);
-    // anim.UpdateNodeSize(gatewayNode.Get(0), 15.0, 15.0);
 
     //Create WIFI helper
     WifiHelper wifi;
@@ -86,28 +70,24 @@ int main (void)
     double zCoord = 0.0;
     gatewayMobilityModel->SetPosition(ns3::Vector(xCoord, yCoord, zCoord));
     gatewayNode.Get(0)->AggregateObject(gatewayMobilityModel);
-    // anim.SetConstantPosition(gatewayNode.Get(0), xCoord, yCoord, zCoord);
 
     Ptr<ConstantPositionMobilityModel> serverMobilityModel = CreateObject<ConstantPositionMobilityModel>();
     xCoord = 10.0;
     yCoord = 10.0;
     serverMobilityModel->SetPosition(ns3::Vector(xCoord, yCoord, zCoord));
     serverNode.Get(0)->AggregateObject(serverMobilityModel);
-    // anim.SetConstantPosition(serverNode.Get(0), xCoord, yCoord, zCoord);
 
     Ptr<ConstantPositionMobilityModel> gatewayServerIntermediateMobilityModel = CreateObject<ConstantPositionMobilityModel>();
     xCoord = 5.0;
     yCoord = 5.0;
     gatewayServerIntermediateMobilityModel->SetPosition(ns3::Vector(xCoord, yCoord, zCoord));
     intermediateNodes.Get(0)->AggregateObject(gatewayServerIntermediateMobilityModel);
-    // anim.SetConstantPosition(intermediateNodes.Get(0), xCoord, yCoord, zCoord);
 
     Ptr<ConstantPositionMobilityModel> serverShelfIntermediateMobilityModel = CreateObject<ConstantPositionMobilityModel>();
     xCoord = 15.0;
     yCoord = 10.0;
     serverShelfIntermediateMobilityModel->SetPosition(ns3::Vector(xCoord, yCoord, zCoord));
     intermediateNodes.Get(1)->AggregateObject(serverShelfIntermediateMobilityModel);
-    // anim.SetConstantPosition(intermediateNodes.Get(1), xCoord, yCoord, zCoord);
 
     std::vector<Ptr<ConstantPositionMobilityModel>> sensorMobilityModels;
     xCoord = 17.5;
@@ -119,7 +99,6 @@ int main (void)
         sensorMobilityModels.push_back(sensorMobilityModel);
         sensorMobilityModels[idx]->SetPosition(Vector(xCoord, yCoord, zCoord));
         sensorNodes.Get(idx)->AggregateObject(sensorMobilityModels[idx]);
-        // anim.SetConstantPosition(sensorNodes.Get(idx), xCoord, yCoord, zCoord);
 
         zCoord = shelfGroup%2==0 ? 0.0 : zCoord + 1.0 ;
         yCoord = shelfGroup%2==0 ? yCoord : yCoord - 2.5;
@@ -217,8 +196,8 @@ int main (void)
     
     Ptr<Layer7> udp0 = DynamicCast <Layer7> (apps.Get(6));
     Ptr<Layer7> udp1 = DynamicCast <Layer7> (apps.Get(9));
-        uint8_t* buffer = (uint8_t*)malloc(sizeof(Layer7::messageData));
-        uint8_t* buffer2 = (uint8_t*)malloc(sizeof(Layer7::messageData));
+    uint8_t* buffer = (uint8_t*)malloc(sizeof(Layer7::messageData));
+    uint8_t* buffer2 = (uint8_t*)malloc(sizeof(Layer7::messageData));
     for(uint8_t i = 0; i < 10; i++){
         buffer[0] = 10; // Server
         buffer[1] = 0; // Broadcast
@@ -240,6 +219,46 @@ int main (void)
     apps.Stop(Seconds(12.0));
     
     Simulator::Stop(Seconds(15.0));
+
+
+    ns3::AnimationInterface anim("animation.xml");
+    anim.EnableIpv4RouteTracking("routing.xml", Seconds(0.0), Seconds(12.0), Seconds(1.0));
+
+    for (uint32_t i = 0; i < sensorNodes.GetN(); ++i){
+        anim.UpdateNodeDescription(sensorNodes.Get(i), "Sensor " + std::to_string(i));
+        anim.UpdateNodeColor(sensorNodes.Get(i), 0, 255, 0);
+        anim.UpdateNodeSize(sensorNodes.Get(i), 0.5, 0.5);
+    }
+
+    xCoord = 17.5;
+    yCoord = 12.5;
+    shelfGroup = 1;
+
+    for(uint idx = 0; idx < sensorNodes.GetN(); idx++){
+        anim.SetConstantPosition(sensorNodes.Get(idx), xCoord, yCoord, zCoord);
+        zCoord = shelfGroup%2==0 ? 0.0 : zCoord + 1.0 ;
+        yCoord = shelfGroup%2!=0 ? yCoord : yCoord - 2.5;
+        shelfGroup = shelfGroup%2==0 ? 1 : shelfGroup + 1 ;
+    }
+
+    for (uint32_t i = 0; i < intermediateNodes.GetN(); ++i){
+        anim.UpdateNodeDescription(intermediateNodes.Get(i), "Intermediate " + std::to_string(i));
+        anim.UpdateNodeColor(intermediateNodes.Get(i), 255, 165, 0);
+        anim.UpdateNodeSize(intermediateNodes.Get(i), 1.0, 1.0);
+    }
+    anim.SetConstantPosition(intermediateNodes.Get(0), 5.0, 5.0, 0.0);
+    anim.SetConstantPosition(intermediateNodes.Get(1), 15.0, 10.0, 0.0);
+
+    anim.UpdateNodeDescription(serverNode.Get(0), "Server");
+    anim.UpdateNodeColor(serverNode.Get(0), 255, 0, 0);
+    anim.UpdateNodeSize(serverNode.Get(0), 2.0, 2.0);
+    anim.SetConstantPosition(serverNode.Get(0), 10.0, 10.0, 0.0);
+
+    anim.UpdateNodeDescription(gatewayNode.Get(0), "Gateway");
+    anim.UpdateNodeColor(gatewayNode.Get(0), 0, 0, 255);
+    anim.UpdateNodeSize(gatewayNode.Get(0), 1.5, 1.5);
+    anim.SetConstantPosition(gatewayNode.Get(0), 0.0, 0.0, 0.0);
+
     ns3::Simulator::Run();
     ns3::Simulator::Destroy();
 
