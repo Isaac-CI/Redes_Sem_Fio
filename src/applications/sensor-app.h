@@ -4,8 +4,6 @@
 #include "libRedes.h"
 #include "ns3/application.h"
 
-using namespace ns3;
-
 namespace ns3
 {
     class SensorApp : public Application, public LibRedes
