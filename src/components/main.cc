@@ -56,10 +56,7 @@ int main (void)
 
     //Create WIFI helper
     WifiHelper wifi;
-    wifi.SetStandard(WIFI_STANDARD_80211ac);
-    wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("VhtMcs9"),
-                                 "ControlMode", StringValue("VhtMcs0"));
-    Config::Set("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/ChannelWidth", UintegerValue(20));
+    wifi.SetStandard(WIFI_STANDARD_80211b);
 
     //Create WIFI helpers for layers 1 and 2
     YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
@@ -237,6 +234,8 @@ int main (void)
         Ptr<Packet> packet2 = Create<Packet>(buffer2, sizeof(Layer7::messageData));
         Simulator::Schedule(Seconds(i + 0.5), &Layer7::SendPacket, udp1, packet2, intermediateInterfaces.GetAddress(0), 5500);
     }
+
+    Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
     apps.Start(Seconds(0));
     apps.Stop(Seconds(12.0));
