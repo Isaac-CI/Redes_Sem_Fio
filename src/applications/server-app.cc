@@ -91,6 +91,11 @@ namespace ns3
 
         //Sender Socket
         sender_socket = Socket::CreateSocket(GetNode(), tid);
+        if(sender_socket->Bind(InetSocketAddress(m_addr, PORT)) == -1)
+            NS_FATAL_ERROR("Failed to bind socket");
+
+        sender_socket->SetRecvPktInfo(true);
+        sender_socket->SetAllowBroadcast(true);
     }
     
     void ServerApp::ServerCallback(Ptr<Socket> socket) {        
@@ -242,7 +247,6 @@ namespace ns3
     {
         NS_LOG_FUNCTION (this << m_addr << packet->ToString() << destination << port << Simulator::Now());
         sender_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(destination), port));
-        sender_socket->SetAllowBroadcast(true);
         if(sender_socket->Send(packet) == -1)
             std::cout << "Failed Transmission" << std::endl;
         else{
