@@ -23,36 +23,36 @@ int main (void)
 
     handler.loadFile();
 
-    ns3::AnimationInterface anim("animation.xml");
+    // ns3::AnimationInterface anim("animation.xml");
 
     NodeContainer sensorNodes;
     sensorNodes.Create(6);
-    for (uint32_t i = 0; i < sensorNodes.GetN(); ++i){
-        anim.UpdateNodeDescription(sensorNodes.Get(i), "Sensor " + std::to_string(i));
-        anim.UpdateNodeColor(sensorNodes.Get(i), 0, 255, 0);
-        anim.UpdateNodeSize(sensorNodes.Get(i), 5.0, 5.0);
-    }
+    // for (uint32_t i = 0; i < sensorNodes.GetN(); ++i){
+    //     anim.UpdateNodeDescription(sensorNodes.Get(i), "Sensor " + std::to_string(i));
+    //     anim.UpdateNodeColor(sensorNodes.Get(i), 0, 255, 0);
+    //     anim.UpdateNodeSize(sensorNodes.Get(i), 5.0, 5.0);
+    // }
 
 
     NodeContainer intermediateNodes;
     intermediateNodes.Create(2);
-    for (uint32_t i = 0; i < intermediateNodes.GetN(); ++i){
-        anim.UpdateNodeDescription(intermediateNodes.Get(i), "Intermediate " + std::to_string(i));
-        anim.UpdateNodeColor(intermediateNodes.Get(i), 255, 165, 0);
-        anim.UpdateNodeSize(intermediateNodes.Get(i), 10.0, 10.0);
-    }
+    // for (uint32_t i = 0; i < intermediateNodes.GetN(); ++i){
+    //     anim.UpdateNodeDescription(intermediateNodes.Get(i), "Intermediate " + std::to_string(i));
+    //     anim.UpdateNodeColor(intermediateNodes.Get(i), 255, 165, 0);
+    //     anim.UpdateNodeSize(intermediateNodes.Get(i), 10.0, 10.0);
+    // }
 
     NodeContainer serverNode;
     serverNode.Create(1);
-    anim.UpdateNodeDescription(serverNode.Get(0), "Server");
-    anim.UpdateNodeColor(serverNode.Get(0), 255, 0, 0);
-    anim.UpdateNodeSize(serverNode.Get(0), 20.0, 20.0);
+    // anim.UpdateNodeDescription(serverNode.Get(0), "Server");
+    // anim.UpdateNodeColor(serverNode.Get(0), 255, 0, 0);
+    // anim.UpdateNodeSize(serverNode.Get(0), 20.0, 20.0);
 
     NodeContainer gatewayNode;
     gatewayNode.Create(1);
-    anim.UpdateNodeDescription(gatewayNode.Get(0), "Gateway");
-    anim.UpdateNodeColor(gatewayNode.Get(0), 0, 0, 255);
-    anim.UpdateNodeSize(gatewayNode.Get(0), 15.0, 15.0);
+    // anim.UpdateNodeDescription(gatewayNode.Get(0), "Gateway");
+    // anim.UpdateNodeColor(gatewayNode.Get(0), 0, 0, 255);
+    // anim.UpdateNodeSize(gatewayNode.Get(0), 15.0, 15.0);
 
     //Create WIFI helper
     WifiHelper wifi;
@@ -89,28 +89,28 @@ int main (void)
     double zCoord = 0.0;
     gatewayMobilityModel->SetPosition(ns3::Vector(xCoord, yCoord, zCoord));
     gatewayNode.Get(0)->AggregateObject(gatewayMobilityModel);
-    anim.SetConstantPosition(gatewayNode.Get(0), xCoord, yCoord, zCoord);
+    // anim.SetConstantPosition(gatewayNode.Get(0), xCoord, yCoord, zCoord);
 
     Ptr<ConstantPositionMobilityModel> serverMobilityModel = CreateObject<ConstantPositionMobilityModel>();
     xCoord = 100.0;
     yCoord = 100.0;
     serverMobilityModel->SetPosition(ns3::Vector(xCoord, yCoord, zCoord));
     serverNode.Get(0)->AggregateObject(serverMobilityModel);
-    anim.SetConstantPosition(serverNode.Get(0), xCoord, yCoord, zCoord);
+    // anim.SetConstantPosition(serverNode.Get(0), xCoord, yCoord, zCoord);
 
     Ptr<ConstantPositionMobilityModel> gatewayServerIntermediateMobilityModel = CreateObject<ConstantPositionMobilityModel>();
     xCoord = 50.0;
     yCoord = 50.0;
     gatewayServerIntermediateMobilityModel->SetPosition(ns3::Vector(xCoord, yCoord, zCoord));
     intermediateNodes.Get(0)->AggregateObject(gatewayServerIntermediateMobilityModel);
-    anim.SetConstantPosition(intermediateNodes.Get(0), xCoord, yCoord, zCoord);
+    // anim.SetConstantPosition(intermediateNodes.Get(0), xCoord, yCoord, zCoord);
 
     Ptr<ConstantPositionMobilityModel> serverShelfIntermediateMobilityModel = CreateObject<ConstantPositionMobilityModel>();
     xCoord = 150.0;
     yCoord = 100.0;
     serverShelfIntermediateMobilityModel->SetPosition(ns3::Vector(xCoord, yCoord, zCoord));
     intermediateNodes.Get(1)->AggregateObject(serverShelfIntermediateMobilityModel);
-    anim.SetConstantPosition(intermediateNodes.Get(1), xCoord, yCoord, zCoord);
+    // anim.SetConstantPosition(intermediateNodes.Get(1), xCoord, yCoord, zCoord);
 
     std::vector<Ptr<ConstantPositionMobilityModel>> sensorMobilityModels;
     xCoord = 175.0;
@@ -122,7 +122,7 @@ int main (void)
         sensorMobilityModels.push_back(sensorMobilityModel);
         sensorMobilityModels[idx]->SetPosition(Vector(xCoord, yCoord, zCoord));
         sensorNodes.Get(idx)->AggregateObject(sensorMobilityModels[idx]);
-        anim.SetConstantPosition(sensorNodes.Get(idx), xCoord, yCoord, zCoord);
+        // anim.SetConstantPosition(sensorNodes.Get(idx), xCoord, yCoord, zCoord);
 
         zCoord = shelfGroup%2==0 ? 0.0 : zCoord + 10.0 ;
         yCoord = shelfGroup%2==0 ? yCoord : yCoord - 25.0;

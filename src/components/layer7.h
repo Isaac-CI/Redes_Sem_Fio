@@ -40,7 +40,7 @@ namespace ns3
 
         private:
         
-            void SetupReceiveSocket (Ptr<Socket> socket, uint16_t port);
+            void SetupReceiveSocket (Ptr<Socket> socket, Ipv4Address addr);
             virtual void StartApplication ();
             
             ns3::Callback<void, Ptr<Socket>> cb;
