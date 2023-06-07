@@ -54,9 +54,9 @@ namespace ns3
         id = Id;
         m_addr = addr1; 
         addrIGS = addr2;
-        shelves = handler.shelves;
-        gateway_commands = handler.gateway_commands;
-        gateway_target = handler.gateway_target;
+        LibRedes::shelves = handler.shelves;
+        LibRedes::gateway_commands = handler.gateway_commands;
+        LibRedes::gateway_target = handler.gateway_target;
         receiver_socket = nullptr;
         sender_socket = nullptr;
     }
@@ -106,7 +106,7 @@ namespace ns3
             // ...
             uint8_t buffer[packetSize];
             packetGateway->CopyData(buffer, packetSize);
-            messageData* data = (messageData*)malloc(sizeof(messageData));
+            LibRedes::messageData* data = (LibRedes::messageData*)malloc(sizeof(LibRedes::messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
             data->command = buffer[2];

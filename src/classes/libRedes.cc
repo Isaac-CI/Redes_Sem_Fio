@@ -11,6 +11,7 @@
 #define BOLD_CODE "\033[1m"
 #define END_CODE "\033[0m"
 
+using namespace ns3;
 namespace ns3
 {
     LibRedes::LibRedes()
@@ -18,9 +19,7 @@ namespace ns3
         shelves.resize(6);
     }
     
-    LibRedes::~LibRedes()
-    {
-    }
+
     
 
     int LibRedes::loadFile()

@@ -6,11 +6,15 @@
 #include "ns3/callback.h"
 #include <queue>
 #include <fstream>
+
+using namespace ns3;
+
 namespace ns3
 {
     class LibRedes
     {   
     public:
+        LibRedes();
 
         std::vector<std::queue<bool>> shelves;
         std::vector<int> gateway_commands;
@@ -22,8 +26,6 @@ namespace ns3
             uint8_t payload;
         } messageData;
 
-        LibRedes();
-        ~LibRedes();
         int loadFile();
 
     };

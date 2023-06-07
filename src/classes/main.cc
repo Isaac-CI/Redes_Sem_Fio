@@ -1,9 +1,9 @@
-#include "classes/interfaces/m_gateway-app.h"
-#include "classes/interfaces/m_intermediate-gateway-app.h"
-#include "classes/interfaces/m_intermediate-sensor-app.h"
-#include "classes/interfaces/m_sensor-app.h"
-#include "classes/interfaces/m_server-app.h"
-#include "classes/interfaces/libRedes.h"
+#include "m_gateway-app.h"
+#include "m_intermediate-gateway-app.h"
+#include "m_intermediate-sensor-app.h"
+#include "m_sensor-app.h"
+#include "m_server-app.h"
+#include "libRedes.h"
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
@@ -22,7 +22,7 @@
 
 using namespace ns3;
 
-int main (void)
+int main(void)
 {
     LogComponentEnable("ServerApp", LOG_LEVEL_ALL);
     LogComponentEnable("SensorApp", LOG_LEVEL_ALL);
@@ -66,7 +66,7 @@ int main (void)
     intermediateDevices = wifi.Install(phy, mac, intermediateNodes);
     serverDevice = wifi.Install(phy, mac, serverNode);
     gatewayDevice = wifi.Install(phy, mac, gatewayNode);
- 
+
 
     // ----------------------- NODE MOBILITY SECTION ------------------------------------------
 
@@ -173,8 +173,8 @@ int main (void)
     apps.Add(ISS_app);
 
     Ptr<GatewayApp> gateway_app = Create<GatewayApp>(gatewayInterface.GetAddress(0),
-                                                     intermediateInterfaces.GetAddress(0),     
-                                                     13, handler);
+                                                    intermediateInterfaces.GetAddress(0),     
+                                                    13, handler);
     gatewayNode.Get(0)->AddApplication(gateway_app);
     apps.Add(gateway_app);
 

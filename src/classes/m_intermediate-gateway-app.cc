@@ -56,9 +56,9 @@ namespace ns3
         m_addr = addr1;
         addrServer = addr2;
         addrGateway = addr3;
-        shelves = handler.shelves;
-        gateway_commands = handler.gateway_commands;
-        gateway_target = handler.gateway_target;
+        LibRedes::shelves = handler.shelves;
+        LibRedes::gateway_commands = handler.gateway_commands;
+        LibRedes::gateway_target = handler.gateway_target;
         receiver_socket = nullptr;
         sender_socket = nullptr;
     }
@@ -107,39 +107,39 @@ namespace ns3
             // ...
             uint8_t buffer[packetSize];
             packetServer->CopyData(buffer, packetSize);
-            messageData* data = (messageData*)malloc(sizeof(messageData));
+            LibRedes::messageData* data = (LibRedes::messageData*)malloc(sizeof(LibRedes::messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
             data->command = buffer[2];
             data->payload = buffer[3];
 
             if(data->source == 13){ // Gateway->Servidor
-                uint8_t* msg = (uint8_t*)malloc(sizeof(messageData));
+                uint8_t* msg = (uint8_t*)malloc(sizeof(LibRedes::messageData));
                 msg[0] = data->source;
                 msg[1] = data->dest;
                 msg[2] = data->command;
                 msg[3] = data->payload;  
-                packetServer = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
+                packetServer = Create<Packet>(msg, sizeof(LibRedes::messageData)); // cria pacote com mensagem a ser repassada
                 SendPacket(packetServer, addrServer, PORT);
                 // sender_socket->Connect(InetSocketAddress(addrServer, PORT));
                 // sender_socket->Send(packetServer); // repassa a mensagem para o servidor
             }else if(data->source == 10){ // Servidor->Gateway
-                uint8_t* msg = (uint8_t*)malloc(sizeof(messageData));
+                uint8_t* msg = (uint8_t*)malloc(sizeof(LibRedes::messageData));
                 msg[0] = data->source;
                 msg[1] = data->dest;
                 msg[2] = data->command;
                 msg[3] = data->payload;  
-                packetServer = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
+                packetServer = Create<Packet>(msg, sizeof(LibRedes::messageData)); // cria pacote com mensagem a ser repassada
                 SendPacket(packetServer, addrGateway, PORT);
                 // sender_socket->Connect(InetSocketAddress(addrGateway, PORT));
                 // sender_socket->Send(packetServer); // repassa a mensagem para o servidor
             }else{
-                uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+                uint8_t* errorMsg = (uint8_t*)malloc(sizeof(LibRedes::messageData));
                 errorMsg[0] = data->source; // A nova mensagem tem como fonte o servidor
                 errorMsg[1] = data->source;  // Essa mensagem não deveria ter saído do source
                 errorMsg[2] = 5;  // Código de erro
                 errorMsg[3] = 0;  // não importa, deixo em 0.
-                packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
+                packetServer = Create<Packet>(errorMsg, sizeof(LibRedes::messageData)); // cria pacote com mensagem a ser repassada
                 SendPacket(packetServer, senderAddress, PORT);
                 // sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                 // sender_socket->Send(packetServer); // repassa a mensagem de sucesso para o nó intermediário entre servidor e gateway

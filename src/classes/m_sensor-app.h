@@ -15,12 +15,6 @@ namespace ns3
 
             static TypeId GetTypeId ();
             virtual TypeId GetInstanceTypeId () const;
-            typedef struct{
-                uint8_t source;
-                uint8_t dest;
-                uint8_t command;
-                uint8_t payload;
-            } messageData;
 
             void SensorCallback(Ptr<Socket>);
             bool sensor_state;

@@ -113,12 +113,12 @@ namespace ns3
             // ...
             uint8_t buffer[packetSize];
             packetS->CopyData(buffer, packetSize);
-            messageData* data = (messageData*)malloc(sizeof(messageData));
+            LibRedes::messageData* data = (LibRedes::messageData*)malloc(sizeof(LibRedes::messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
             data->command = buffer[2];
             data->payload = buffer[3];
-            uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
+            uint8_t* errorMsg = (uint8_t*)malloc(sizeof(LibRedes::messageData));
 
             if(data->source == 10){ // Veio do servidor
             // Repassa mensagem recebida do servidor para os sensores que a interessam.
@@ -137,7 +137,7 @@ namespace ns3
                             errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
                             errorMsg[2] = 5;  // codigo de mensagem de erro
                             errorMsg[3] = 1;  // codigo que indica que o erro foi de destino inválido
-                            packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                            packetS = Create<Packet>(errorMsg, sizeof(LibRedes::messageData)); // cria pacote com mensagem de erro
                             SendPacket(packetS, senderAddress, PORT);
                             // sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                             // sender_socket->Send(packetS); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
@@ -150,12 +150,11 @@ namespace ns3
                         break;
                     case 2: // servidor deseja preencher uma prateleira
                         if(data->dest > 6 || data->dest < 0){ // caso o destino esteja fora do intervalo permitido, isto é, seja o identificador de algum sensor
-                            //uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
                             errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
                             errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
                             errorMsg[2] = 5;  // codigo de mensagem de erro
                             errorMsg[3] = 1;  // codigo que indica que o erro foi de destino inválido
-                            packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                            packetS = Create<Packet>(errorMsg, sizeof(LibRedes::messageData)); // cria pacote com mensagem de erro
                             SendPacket(packetS, senderAddress, PORT);
                             //sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                             //sender_socket->Send(packetS);// envia de volta para quem enviou a mensagem, indicando erro na comunicação
@@ -171,12 +170,11 @@ namespace ns3
                     case 5: // Ocorreu Erro
                         break;
                     default: // instrução inválida, envia mensagem de erro de volta para o nó que enviou a mensagem original.
-                        //uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
                         errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
                         errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
                         errorMsg[2] = 5;  // codigo de mensagem de erro
                         errorMsg[3] = 2;  // codigo que indica que o erro foi de comando inválido
-                        packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                        packetS = Create<Packet>(errorMsg, sizeof(LibRedes::messageData)); // cria pacote com mensagem de erro
                         sender_socket->SendTo(packetS, 0, InetSocketAddress(senderAddress, PORT)); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
 
                         break;
@@ -187,12 +185,11 @@ namespace ns3
                     // sender_socket->Connect(InetSocketAddress(addrServer, PORT));
                     // sender_socket->Send(packetS); // repassa a mensagem para o servidor
                 }else{ // Inconsistência na mensagem
-                    // uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
                     errorMsg[0] = 12; // quem manda é o intermediário entre sensores e servidor
                     errorMsg[1] = data->source; // endereço de quem enviou a mensagem
                     errorMsg[2] = 5;  // codigo de mensagem de erro
                     errorMsg[3] = 0;  // codigo que indica que o erro foi de fonte inválida
-                    packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
+                    packetS = Create<Packet>(errorMsg, sizeof(LibRedes::messageData)); // cria pacote com mensagem de erro
                     SendPacket(packetS, senderAddress, PORT);
                     // sender_socket->Connect(InetSocketAddress(senderAddress, 550));
                     // sender_socket->Send(packetS); // envia de volta para quem enviou a mensagem, indicando erro na comunicação

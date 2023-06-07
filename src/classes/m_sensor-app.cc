@@ -53,15 +53,16 @@ namespace ns3
         id = Id;
         m_addr = addr1;
         addrISS = addr2;
-        shelves = handler.shelves;
+        LibRedes::shelves = handler.shelves;
         sensor_state = shelves[id - 1].front();
-        gateway_commands = handler.gateway_commands;
-        gateway_target = handler.gateway_target;
+        LibRedes::gateway_commands = handler.gateway_commands;
+        LibRedes::gateway_target = handler.gateway_target;
         receiver_socket = nullptr;
         sender_socket = nullptr;
     }
     SensorApp::~SensorApp()
     {
+        std::cout << "~SensorApp()" << std::endl;
     }
     void SensorApp::SetupReceiveSocket(Ptr<Socket> socket, Ipv4Address addr)
     { 
@@ -106,13 +107,13 @@ namespace ns3
             // ...
             uint8_t buffer[packetSize];
             packetSensor->CopyData(buffer, packetSize);
-            messageData* data = (messageData*)malloc(sizeof(messageData));
+            LibRedes::messageData* data = (LibRedes::messageData*)malloc(sizeof(LibRedes::messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
             data->command = buffer[2];
             data->payload = buffer[3];
             
-            uint8_t* msg = (uint8_t*)malloc(sizeof(messageData));
+            uint8_t* msg = (uint8_t*)malloc(sizeof(LibRedes::messageData));
             NS_LOG_INFO(GREEN_CODE << "Recebido pacote de " << senderAddress << ", tamanho: " << packetSize << " bytes" << END_CODE);
             NS_LOG_INFO(GREEN_CODE << "src: " << data->source << ", dest: " << data->dest << ", command: " << data->command << ", payload" << data->payload << END_CODE);
             if(id > 0 && id <= 6){ // Se o Sensor Id se referir a uma prateleira existente
@@ -126,7 +127,7 @@ namespace ns3
                         msg[1] = 10;  // Identificador do servidor
                         msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                         msg[3] = sensor_state;  // Payload assume o valor da leitura do sensor
-                        packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
+                        packetSensor = Create<Packet>(msg, sizeof(LibRedes::messageData)); // cria pacote com mensagem a ser repassada
                         SendPacket(packetSensor, addrISS, PORT);// repassa a mensagem para o nó intermediário entre servidor e sensores
                         //sender_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(addrISS), PORT));
                         //sender_socket->Send(packetSensor); // repassa a mensagem para o nó intermediário entre servidor e sensores
@@ -143,7 +144,7 @@ namespace ns3
                         msg[1] = 10;  // Identificador do servidor
                         msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                         msg[3] = false;  // Payload assume o valor 0, indicando que a prateleira foi esvaziada
-                        packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
+                        packetSensor = Create<Packet>(msg, sizeof(LibRedes::messageData)); // cria pacote com mensagem a ser repassada
                         SendPacket(packetSensor, addrISS, PORT);
                         //sender_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(addrISS), PORT));
                         //sender_socket->Send(packetSensor); // repassa a mensagem para o nó intermediário entre servidor e sensores
@@ -158,7 +159,7 @@ namespace ns3
                         msg[1] = 10;  // Identificador do servidor
                         msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                         msg[3] = true;  // Payload assume o valor 0, indicando que a prateleira foi preenchida
-                        packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
+                        packetSensor = Create<Packet>(msg, sizeof(LibRedes::messageData)); // cria pacote com mensagem a ser repassada
                         SendPacket(packetSensor, addrISS, PORT);
                         //sender_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(addrISS), PORT));
                         //sender_socket->Send(packetSensor); // repassa a mensagem para o nó intermediário entre servidor e sensores

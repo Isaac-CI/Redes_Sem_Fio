@@ -4,8 +4,6 @@
 #include "libRedes.h"
 #include "ns3/application.h"
 
-using namespace ns3;
-
 namespace ns3
 {
     class GatewayApp : public Application, public LibRedes
@@ -17,17 +15,8 @@ namespace ns3
 
             static TypeId GetTypeId ();
             virtual TypeId GetInstanceTypeId () const;
-            typedef struct{
-                uint8_t source;
-                uint8_t dest;
-                uint8_t command;
-                uint8_t payload;
-            } messageData;
 
             void GatewayCallback(Ptr<Socket>);
-
-            std::vector<bool> server_state_table;
-            bool sensor_state;
 
             void SendPacket (Ptr<Packet> packet, Ipv4Address destination, uint16_t port);
 
