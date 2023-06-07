@@ -19,7 +19,8 @@
 #define BOLD_CODE "\033[1m"
 #define END_CODE "\033[0m"
 
-#define PORT 5500
+#define RECV_PORT 5500
+#define SEND_PORT 80
 
 namespace ns3
 {
@@ -65,7 +66,7 @@ namespace ns3
     }
     void SensorApp::SetupReceiveSocket(Ptr<Socket> socket)
     { 
-        InetSocketAddress local = InetSocketAddress(m_addr, PORT);
+        InetSocketAddress local = InetSocketAddress(m_addr, RECV_PORT);
         if (socket->Bind(local) == -1)
         {
             NS_FATAL_ERROR("Failed to bind socket");
@@ -86,8 +87,8 @@ namespace ns3
 
         //Sender Socket
         sender_socket = Socket::CreateSocket(GetNode(), tid);
-        // if(sender_socket->Bind(InetSocketAddress(m_addr, PORT)) == -1)
-        //     NS_FATAL_ERROR("Failed to bind socket");
+        if(sender_socket->Bind(InetSocketAddress(m_addr, SEND_PORT)) == -1)
+            NS_FATAL_ERROR("Failed to bind socket");
 
         sender_socket->SetRecvPktInfo(true);
         sender_socket->SetAllowBroadcast(true);
@@ -127,7 +128,7 @@ namespace ns3
                         msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                         msg[3] = sensor_state;  // Payload assume o valor da leitura do sensor
                         packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                        SendPacket(packetSensor, addrISS, PORT);// repassa a mensagem para o nó intermediário entre servidor e sensores
+                        SendPacket(packetSensor, addrISS, RECV_PORT);// repassa a mensagem para o nó intermediário entre servidor e sensores
                         //sender_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(addrISS), PORT));
                         //sender_socket->Send(packetSensor); // repassa a mensagem para o nó intermediário entre servidor e sensores
 
@@ -144,7 +145,7 @@ namespace ns3
                         msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                         msg[3] = false;  // Payload assume o valor 0, indicando que a prateleira foi esvaziada
                         packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                        SendPacket(packetSensor, addrISS, PORT);
+                        SendPacket(packetSensor, addrISS, RECV_PORT);
                         //sender_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(addrISS), PORT));
                         //sender_socket->Send(packetSensor); // repassa a mensagem para o nó intermediário entre servidor e sensores
                     } else { // caso esteja vazia, avisa que não há mais leituras do sensor
@@ -159,7 +160,7 @@ namespace ns3
                         msg[2] = data->command;  // codigo de mensagem de verificação de estado da prateleira
                         msg[3] = true;  // Payload assume o valor 0, indicando que a prateleira foi preenchida
                         packetSensor = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                        SendPacket(packetSensor, addrISS, PORT);
+                        SendPacket(packetSensor, addrISS, RECV_PORT);
                         //sender_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(addrISS), PORT));
                         //sender_socket->Send(packetSensor); // repassa a mensagem para o nó intermediário entre servidor e sensores
                     break;

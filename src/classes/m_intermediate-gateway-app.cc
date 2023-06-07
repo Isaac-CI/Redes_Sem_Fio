@@ -19,7 +19,8 @@
 #define BOLD_CODE "\033[1m"
 #define END_CODE "\033[0m"
 
-#define PORT 5500
+#define RECV_PORT 5500
+#define SEND_PORT 80
 
 namespace ns3
 {
@@ -67,7 +68,7 @@ namespace ns3
     }
     void IGS::SetupReceiveSocket(Ptr<Socket> socket, Ipv4Address addr)
     { 
-        InetSocketAddress local = InetSocketAddress(addr, PORT);
+        InetSocketAddress local = InetSocketAddress(addr, RECV_PORT);
         if (socket->Bind(local) == -1)
         {
             NS_FATAL_ERROR("Failed to bind socket");
@@ -88,8 +89,8 @@ namespace ns3
 
         //Sender Socket
         sender_socket = UdpSocket::CreateSocket(GetNode(), tid);
-        // if(sender_socket->Bind(InetSocketAddress(m_addr, PORT)) == -1)
-        //     NS_FATAL_ERROR("Failed to bind socket");
+        if(sender_socket->Bind(InetSocketAddress(m_addr, SEND_PORT)) == -1)
+            NS_FATAL_ERROR("Failed to bind socket");
 
         sender_socket->SetRecvPktInfo(true);
         sender_socket->SetAllowBroadcast(true);
@@ -120,7 +121,7 @@ namespace ns3
                 msg[2] = data->command;
                 msg[3] = data->payload;  
                 packetServer = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                SendPacket(packetServer, addrServer, PORT);
+                SendPacket(packetServer, addrServer, RECV_PORT);
                 // sender_socket->Connect(InetSocketAddress(addrServer, PORT));
                 // sender_socket->Send(packetServer); // repassa a mensagem para o servidor
             }else if(data->source == 10){ // Servidor->Gateway
@@ -130,7 +131,7 @@ namespace ns3
                 msg[2] = data->command;
                 msg[3] = data->payload;  
                 packetServer = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                SendPacket(packetServer, addrGateway, PORT);
+                SendPacket(packetServer, addrGateway, RECV_PORT);
                 // sender_socket->Connect(InetSocketAddress(addrGateway, PORT));
                 // sender_socket->Send(packetServer); // repassa a mensagem para o servidor
             }else{
@@ -140,7 +141,7 @@ namespace ns3
                 errorMsg[2] = 5;  // Código de erro
                 errorMsg[3] = 0;  // não importa, deixo em 0.
                 packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                SendPacket(packetServer, senderAddress, PORT);
+                SendPacket(packetServer, senderAddress, RECV_PORT);
                 // sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                 // sender_socket->Send(packetServer); // repassa a mensagem de sucesso para o nó intermediário entre servidor e gateway
                 NS_LOG_ERROR("Erro ao enviar pacote indevido ao nó intermediário 'Gateway-Servidor'. Retornando ao nó de origem.");

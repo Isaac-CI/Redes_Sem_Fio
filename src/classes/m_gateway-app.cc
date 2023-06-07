@@ -19,7 +19,8 @@
 #define BOLD_CODE "\033[1m"
 #define END_CODE "\033[0m"
 
-#define PORT 5500
+#define RECV_PORT 5500
+#define SEND_PORT 80
 
 namespace ns3
 {
@@ -65,7 +66,7 @@ namespace ns3
     }
     void GatewayApp::SetupReceiveSocket(Ptr<Socket> socket, Ipv4Address addr)
     { 
-        InetSocketAddress local = InetSocketAddress(addr, PORT);
+        InetSocketAddress local = InetSocketAddress(addr, RECV_PORT);
         if (socket->Bind(local) == -1)
         {
             NS_FATAL_ERROR("Failed to bind socket");
@@ -85,8 +86,8 @@ namespace ns3
 
         //Sender Socket
         sender_socket = Socket::CreateSocket(GetNode(), tid);
-        // if(sender_socket->Bind(InetSocketAddress(m_addr, PORT)) == -1)
-        //     NS_FATAL_ERROR("Failed to bind socket");
+        if(sender_socket->Bind(InetSocketAddress(m_addr, SEND_PORT)) == -1)
+            NS_FATAL_ERROR("Failed to bind socket");
 
         sender_socket->SetRecvPktInfo(true);
         sender_socket->SetAllowBroadcast(true);

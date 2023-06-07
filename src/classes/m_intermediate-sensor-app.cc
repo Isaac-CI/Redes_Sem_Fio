@@ -19,7 +19,8 @@
 #define BOLD_CODE "\033[1m"
 #define END_CODE "\033[0m"
 
-#define PORT 5500
+#define RECV_PORT 5500
+#define SEND_PORT 80
 
 namespace ns3
 {
@@ -71,7 +72,7 @@ namespace ns3
     }
     void ISS::SetupReceiveSocket(Ptr<Socket> socket, Ipv4Address addr)
     { 
-        InetSocketAddress local = InetSocketAddress(addr, PORT);
+        InetSocketAddress local = InetSocketAddress(addr, RECV_PORT);
         if (socket->Bind(local) == -1)
         {
             NS_FATAL_ERROR("Failed to bind socket");
@@ -92,8 +93,8 @@ namespace ns3
 
         //Sender Socket
         sender_socket = UdpSocket::CreateSocket(GetNode(), tid);
-        // if(sender_socket->Bind(InetSocketAddress(m_addr, PORT)) == -1)
-        //     NS_FATAL_ERROR("Failed to bind socket");
+        if(sender_socket->Bind(InetSocketAddress(m_addr, SEND_PORT)) == -1)
+            NS_FATAL_ERROR("Failed to bind socket");
 
         sender_socket->SetRecvPktInfo(true);
         sender_socket->SetAllowBroadcast(true);
@@ -126,7 +127,7 @@ namespace ns3
                 {
                     case 0: // servidor deseja descobrir estado atual dos sensores
                         for(uint8_t i = 0; i < 8; i++){ // repassa a mensagem para cada um dos sensores solicitando seus valores atuais
-                            SendPacket(packetS, addrSensors[i], PORT);
+                            SendPacket(packetS, addrSensors[i], RECV_PORT);
                             // sender_socket->Connect(InetSocketAddress(addrSensors[i], PORT));
                             // sender_socket->Send(packetS);
                         }
@@ -138,11 +139,11 @@ namespace ns3
                             errorMsg[2] = 5;  // codigo de mensagem de erro
                             errorMsg[3] = 1;  // codigo que indica que o erro foi de destino inválido
                             packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
-                            SendPacket(packetS, senderAddress, PORT);
+                            SendPacket(packetS, senderAddress, RECV_PORT);
                             // sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                             // sender_socket->Send(packetS); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
                         }else{
-                            SendPacket(packetS, addrSensors[data->dest - 1], PORT);
+                            SendPacket(packetS, addrSensors[data->dest - 1], RECV_PORT);
                             // sender_socket->Connect(InetSocketAddress(addrSensors[data->dest - 1], PORT));
                             // sender_socket->Send(packetS); // repassa a mensagem para o sensor a ser esvaziado
                         }
@@ -155,13 +156,13 @@ namespace ns3
                             errorMsg[2] = 5;  // codigo de mensagem de erro
                             errorMsg[3] = 1;  // codigo que indica que o erro foi de destino inválido
                             packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
-                            SendPacket(packetS, senderAddress, PORT);
+                            SendPacket(packetS, senderAddress, RECV_PORT);
                             //sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                             //sender_socket->Send(packetS);// envia de volta para quem enviou a mensagem, indicando erro na comunicação
                             
                             break;
                         }else{
-                                SendPacket(packetS, addrSensors[data->dest - 1], PORT);
+                                SendPacket(packetS, addrSensors[data->dest - 1], RECV_PORT);
                                 // sender_socket->Connect(InetSocketAddress(addrSensors[data->dest - 1], PORT));
                                 // sender_socket->Send(packetS);// repassa a mensagem para o sensor a ser preenchido
                             }
@@ -175,13 +176,13 @@ namespace ns3
                         errorMsg[2] = 5;  // codigo de mensagem de erro
                         errorMsg[3] = 2;  // codigo que indica que o erro foi de comando inválido
                         packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
-                        sender_socket->SendTo(packetS, 0, InetSocketAddress(senderAddress, PORT)); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
+                        sender_socket->SendTo(packetS, 0, InetSocketAddress(senderAddress, RECV_PORT)); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
 
                         break;
                 }
             } else {
                 if(data->source > 0 && data->source <= 6){ // é algum dos sensores
-                    SendPacket(packetS, addrServer, PORT);
+                    SendPacket(packetS, addrServer, RECV_PORT);
                     // sender_socket->Connect(InetSocketAddress(addrServer, PORT));
                     // sender_socket->Send(packetS); // repassa a mensagem para o servidor
                 }else{ // Inconsistência na mensagem
@@ -190,7 +191,7 @@ namespace ns3
                     errorMsg[2] = 5;  // codigo de mensagem de erro
                     errorMsg[3] = 0;  // codigo que indica que o erro foi de fonte inválida
                     packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
-                    SendPacket(packetS, senderAddress, PORT);
+                    SendPacket(packetS, senderAddress, RECV_PORT);
                     // sender_socket->Connect(InetSocketAddress(senderAddress, 550));
                     // sender_socket->Send(packetS); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
                 }

@@ -19,7 +19,8 @@
 #define BOLD_CODE "\033[1m"
 #define END_CODE "\033[0m"
 
-#define PORT 5500
+#define RECV_PORT 5500
+#define SEND_PORT 80
 
 namespace ns3
 {
@@ -70,7 +71,7 @@ namespace ns3
     }
     void ServerApp::SetupReceiveSocket(Ptr<Socket> socket, Ipv4Address addr)
     { 
-        InetSocketAddress local = InetSocketAddress(addr, PORT);
+        InetSocketAddress local = InetSocketAddress(addr, RECV_PORT);
         if (socket->Bind(local) == -1)
         {
             NS_FATAL_ERROR("Failed to bind socket");
@@ -91,8 +92,8 @@ namespace ns3
 
         //Sender Socket
         sender_socket = Socket::CreateSocket(GetNode(), tid);
-        // if(sender_socket->Bind(InetSocketAddress(m_addr, PORT)) == -1)
-        //     NS_FATAL_ERROR("Failed to bind socket");
+        if(sender_socket->Bind(InetSocketAddress(m_addr, SEND_PORT)) == -1)
+            NS_FATAL_ERROR("Failed to bind socket");
 
         sender_socket->SetRecvPktInfo(true);
         sender_socket->SetAllowBroadcast(true);
@@ -135,7 +136,7 @@ namespace ns3
                         errorMsg[2] = 5;  // codigo de mensagem de erro
                         errorMsg[3] = 1;  // codigo que indica que o erro foi de destino inválido
                         packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
-                        SendPacket(packetServer, senderAddress, PORT);
+                        SendPacket(packetServer, senderAddress, RECV_PORT);
                         //sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                         //sender_socket->Send(packetServer); // envia de volta para o nó intermediário entre servidor e gateway, indicando que sua solicitação foi inválida
 
@@ -148,7 +149,7 @@ namespace ns3
                             msg[2] = data->command;  // codigo de mensagem de esvaziamento de prateleira
                             msg[3] = 0;  // não importa, deixo em 0.
                             packetServer = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                            SendPacket(packetServer, addrISS, PORT);
+                            SendPacket(packetServer, addrISS, RECV_PORT);
                             // sender_socket->Connect(InetSocketAddress(addrISS, PORT));
                             // sender_socket->Send(packetServer); // repassa a mensagem para o nó intermediário entre servidor e sensor
 
@@ -158,7 +159,7 @@ namespace ns3
                             errorMsg[2] = 5;  // codigo de mensagem de erro
                             errorMsg[3] = 3;  // codigo que indica que o erro foi de tentativa de esvaziamento de prateleira vazia
                             packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
-                            SendPacket(packetServer, Ipv4Address::GetBroadcast(), PORT); // Envia o erro por broadcast
+                            SendPacket(packetServer, Ipv4Address::GetBroadcast(), RECV_PORT); // Envia o erro por broadcast
                             //sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                             //sender_socket->Send(packetServer); // envia de volta parao nó intermediário entre servidor e gateway, indicando que sua solicitação foi inválida
                         }
@@ -171,7 +172,7 @@ namespace ns3
                         errorMsg[2] = 5;  // codigo de mensagem de erro
                         errorMsg[3] = 1;  // codigo que indica que o erro foi de destino inválido
                         packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
-                        SendPacket(packetServer, senderAddress, PORT);
+                        SendPacket(packetServer, senderAddress, RECV_PORT);
                         //sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                         //sender_socket->Send(packetServer); // envia de volta para o nó intermediário entre servidor e gateway, indicando que sua solicitação foi inválida
 
@@ -184,7 +185,7 @@ namespace ns3
                             msg[2] = data->command;  // codigo de mensagem de preenchimento de prateleira
                             msg[3] = 0;  // não importa, deixo em 0.
                             packetServer = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                            SendPacket(packetServer, addrISS, PORT);
+                            SendPacket(packetServer, addrISS, RECV_PORT);
                             //sender_socket->Connect(InetSocketAddress(addrISS, PORT));
                             //sender_socket->Send(packetServer);  // repassa a mensagem para o nó intermediário entre servidor e sensores
 
@@ -194,7 +195,7 @@ namespace ns3
                             errorMsg[2] = 5;  // codigo de mensagem de erro
                             errorMsg[3] = 4;  // codigo que indica que o erro foi de tentativa de preenchimento de prateleira cheia
                             packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
-                            SendPacket(packetServer, Ipv4Address::GetBroadcast(), PORT); // Envia por Boradcast a mensgem de erro
+                            SendPacket(packetServer, Ipv4Address::GetBroadcast(), RECV_PORT); // Envia por Boradcast a mensgem de erro
                             // sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                             // sender_socket->Send(packetServer); // envia de volta para o nó intermediário entre servidor e gateway, indicando que sua solicitação foi inválida
                         }
@@ -215,7 +216,7 @@ namespace ns3
                             errorMsg[2] = 5;  // codigo de mensagem de erro
                             errorMsg[3] = 5;  // codigo que indica que o erro foi de tentativa de inconsistência de valores.
                             packetServer = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
-                            SendPacket(packetServer, Ipv4Address::GetBroadcast(), PORT); // Envia mensagem de erro por broadcast
+                            SendPacket(packetServer, Ipv4Address::GetBroadcast(), RECV_PORT); // Envia mensagem de erro por broadcast
                             //sender_socket->Connect(InetSocketAddress(addrIGS, PORT));
                             //sender_socket->Send(packetServer); // envia de volta para o nó intermediário entre servidor e gateway, indicando que ocorreu erro
                 }else{ // Caso o payload seja consistente com a tabela do servidor
@@ -226,7 +227,7 @@ namespace ns3
                         msg[2] = data->command;  // codigo de mensagem de preenchimento de prateleira
                         msg[3] = 0;  // não importa, deixo em 0.
                         packetServer = Create<Packet>(msg, sizeof(messageData)); // cria pacote com mensagem a ser repassada
-                        SendPacket(packetServer, addrIGS, PORT);
+                        SendPacket(packetServer, addrIGS, RECV_PORT);
                         // sender_socket->Connect(InetSocketAddress(addrIGS, PORT));
                         // sender_socket->Send(packetServer); // repassa a mensagem de sucesso para o nó intermediário entre servidor e gateway
                     }else{ // caso o comando seja 0(verificar estado dos sensores), não é necessário mandar nenhuma mensagem, visto que ele partiu do proprio servidor
