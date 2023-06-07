@@ -54,9 +54,9 @@ namespace ns3
         id = Id;
         m_addr = addr1; 
         addrIGS = addr2;
-        LibRedes::shelves = handler.shelves;
-        LibRedes::gateway_commands = handler.gateway_commands;
-        LibRedes::gateway_target = handler.gateway_target;
+        shelves = handler.shelves;
+        gateway_commands = handler.gateway_commands;
+        gateway_target = handler.gateway_target;
         receiver_socket = nullptr;
         sender_socket = nullptr;
     }
@@ -85,8 +85,8 @@ namespace ns3
 
         //Sender Socket
         sender_socket = Socket::CreateSocket(GetNode(), tid);
-        if(sender_socket->Bind(InetSocketAddress(m_addr, PORT)) == -1)
-            NS_FATAL_ERROR("Failed to bind socket");
+        // if(sender_socket->Bind(InetSocketAddress(m_addr, PORT)) == -1)
+        //     NS_FATAL_ERROR("Failed to bind socket");
 
         sender_socket->SetRecvPktInfo(true);
         sender_socket->SetAllowBroadcast(true);
@@ -106,7 +106,7 @@ namespace ns3
             // ...
             uint8_t buffer[packetSize];
             packetGateway->CopyData(buffer, packetSize);
-            LibRedes::messageData* data = (LibRedes::messageData*)malloc(sizeof(LibRedes::messageData));
+            messageData* data = (messageData*)malloc(sizeof(messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
             data->command = buffer[2];

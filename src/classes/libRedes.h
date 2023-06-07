@@ -15,6 +15,7 @@ namespace ns3
     {   
     public:
         LibRedes();
+        ~LibRedes();
 
         std::vector<std::queue<bool>> shelves;
         std::vector<int> gateway_commands;

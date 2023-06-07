@@ -92,8 +92,8 @@ namespace ns3
 
         //Sender Socket
         sender_socket = UdpSocket::CreateSocket(GetNode(), tid);
-        if(sender_socket->Bind(InetSocketAddress(m_addr, PORT)) == -1)
-            NS_FATAL_ERROR("Failed to bind socket");
+        // if(sender_socket->Bind(InetSocketAddress(m_addr, PORT)) == -1)
+        //     NS_FATAL_ERROR("Failed to bind socket");
 
         sender_socket->SetRecvPktInfo(true);
         sender_socket->SetAllowBroadcast(true);
@@ -113,12 +113,12 @@ namespace ns3
             // ...
             uint8_t buffer[packetSize];
             packetS->CopyData(buffer, packetSize);
-            LibRedes::messageData* data = (LibRedes::messageData*)malloc(sizeof(LibRedes::messageData));
+            messageData* data = (messageData*)malloc(sizeof(messageData));
             data->source = buffer[0];
             data->dest = buffer[1];
             data->command = buffer[2];
             data->payload = buffer[3];
-            uint8_t* errorMsg = (uint8_t*)malloc(sizeof(LibRedes::messageData));
+            uint8_t* errorMsg = (uint8_t*)malloc(sizeof(messageData));
 
             if(data->source == 10){ // Veio do servidor
             // Repassa mensagem recebida do servidor para os sensores que a interessam.
@@ -137,7 +137,7 @@ namespace ns3
                             errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
                             errorMsg[2] = 5;  // codigo de mensagem de erro
                             errorMsg[3] = 1;  // codigo que indica que o erro foi de destino inválido
-                            packetS = Create<Packet>(errorMsg, sizeof(LibRedes::messageData)); // cria pacote com mensagem de erro
+                            packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
                             SendPacket(packetS, senderAddress, PORT);
                             // sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                             // sender_socket->Send(packetS); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
@@ -154,7 +154,7 @@ namespace ns3
                             errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
                             errorMsg[2] = 5;  // codigo de mensagem de erro
                             errorMsg[3] = 1;  // codigo que indica que o erro foi de destino inválido
-                            packetS = Create<Packet>(errorMsg, sizeof(LibRedes::messageData)); // cria pacote com mensagem de erro
+                            packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
                             SendPacket(packetS, senderAddress, PORT);
                             //sender_socket->Connect(InetSocketAddress(senderAddress, PORT));
                             //sender_socket->Send(packetS);// envia de volta para quem enviou a mensagem, indicando erro na comunicação
@@ -174,7 +174,7 @@ namespace ns3
                         errorMsg[1] = data->source;  // endereço de quem enviou a mensagem
                         errorMsg[2] = 5;  // codigo de mensagem de erro
                         errorMsg[3] = 2;  // codigo que indica que o erro foi de comando inválido
-                        packetS = Create<Packet>(errorMsg, sizeof(LibRedes::messageData)); // cria pacote com mensagem de erro
+                        packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
                         sender_socket->SendTo(packetS, 0, InetSocketAddress(senderAddress, PORT)); // envia de volta para quem enviou a mensagem, indicando erro na comunicação
 
                         break;
@@ -189,7 +189,7 @@ namespace ns3
                     errorMsg[1] = data->source; // endereço de quem enviou a mensagem
                     errorMsg[2] = 5;  // codigo de mensagem de erro
                     errorMsg[3] = 0;  // codigo que indica que o erro foi de fonte inválida
-                    packetS = Create<Packet>(errorMsg, sizeof(LibRedes::messageData)); // cria pacote com mensagem de erro
+                    packetS = Create<Packet>(errorMsg, sizeof(messageData)); // cria pacote com mensagem de erro
                     SendPacket(packetS, senderAddress, PORT);
                     // sender_socket->Connect(InetSocketAddress(senderAddress, 550));
                     // sender_socket->Send(packetS); // envia de volta para quem enviou a mensagem, indicando erro na comunicação

@@ -23,7 +23,7 @@ namespace ns3
 
         private:
         
-            void SetupReceiveSocket (Ptr<Socket> socket, Ipv4Address addr);
+            void SetupReceiveSocket (Ptr<Socket> socket);
             virtual void StartApplication ();
             
             ns3::Callback<void, Ptr<Socket>> cb;
